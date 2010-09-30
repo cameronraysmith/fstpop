@@ -9,8 +9,8 @@
 #include <stdlib.h>
 #include <string>
 #include <cstring>
+#include <vector>
 #include <bitset>
-
 
 //-------------openFST--------------//
 /*--------
@@ -76,7 +76,8 @@ vector<int> gslrandgen(int n, int range)
 //-------generate a random 2-state FST------------//
 StdVectorFst randfst()
 {
-
+    //bool combo[]={0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,1,0,1,0,1,1,0,1,0,0,0,1,0,0,1,1,0,1,0};
+    //vector<bool> arcbit; arcbit.assign(combo, combo+36);
     bitset<36> arcbit (string("000000010010010001010110100010011010"));
     vector<int> rout = gslrandgen(2, 8);
     vector<int> sout = gslrandgen(4, 1);
@@ -157,7 +158,12 @@ int GetStates(const Fst<Arc> &fst) {
             T[i][ds] = 1;
         }
     }
-}*/
+}
+*/
+
+//double ncomplexity(map<int, int> U, vector<int> PI) // Unique, Population Index
+// intending to pass (popID, nVT)
+
 
 int main()
 {
@@ -177,10 +183,11 @@ int main()
     fstnames[2]="T3";
 //------------------Generate [population] of FSTs--------------------//
     vector<StdVectorFst> VT (N); // Vector of Transducers (VT) is a container for the population
+    vector<int> nVT (N);
     vector<int> randfstind(0);
-    Array2D<bool> popID(N,N);
-//    map<int, int> popID[0]=1;
-//    map<int, int>::iterator it;
+    //Array2D<bool> popID(N,N);
+    map<int, int> popID;
+    map<int, int>::iterator it;
 
     for (int n=0; n<N; n++)
     {
@@ -192,7 +199,7 @@ int main()
 
     //determine the number of unique individuals in the population
 
-    for (int i=0; i<N; i++)
+ /*   for (int i=0; i<N; i++)
     {
         for (int j=i; j<N; j++)
         {
@@ -204,8 +211,8 @@ int main()
             cout << popID[i][j] ;
         }
     }
-
-/*    for (int i=1; i<N; i++)
+*/
+    for (int i=0; i<N; i++)
     {
         bool IDswitch = 1;
         for (it=popID.begin(); it!=popID.end() ; it++)
@@ -215,15 +222,19 @@ int main()
                 {
                     popID[j]=popID[j]+1;
                     IDswitch = 0;
+                    nVT[i]=j;
                     break;
                 }
         }
         if (IDswitch)
         {
             popID[i]=1;
+            nVT[i]=i;
         }
     }
- */
+
+//    vector<bool> G (popID.size(),popID.size(),popID.size())
+
 //-------------------Select two FSTs at random for composition------------//
     StdVectorFst compres; // Container for composition result
     StdVectorFst result; // Container for minimized composition result.
@@ -280,8 +291,43 @@ int main()
     } while ((Verify(result) == 0) | (result.Start() == -1));
 
     int d = randfstind[2]; // index of machine scheduled for replacement
-    VT[d] = result;
+    popID[nVT[d]] = popID[nVT[d]] - 1;
 
+
+    if (popID[nVT[d]]==0) // d was the index to a unique individual that was eliminated
+                          // since nVT only contains values that ARE keys in the map
+    {
+        popID.erase(d);
+        VT[d] = result;
+    } else if(nVT[d]==d) // d was the index to the prototype of a set of identical FSTs
+    {
+        int pos = find(nVT.rbegin(), nVT.rend(), d) - nVT.rbegin();
+        VT[pos]=result;
+        d = pos;
+    } else // d was the index to an individual that was contained within a set whose prototype index is < d
+    {
+        VT[d] = result;
+    }
+
+{
+    bool IDswitch = 1;
+        for (it=popID.begin(); it!=popID.end() ; it++)
+        {
+            int j = (*it).first;
+            if (RandEquivalent(VT[d],VT[j],10,0))
+            {
+                popID[j]=popID[j]+1;
+                nVT[d]=j;
+                IDswitch = 0;
+                break;
+            }
+        }
+        if (IDswitch) // the child was not equivlanet to any of the members of the parent population
+        {
+            popID[d]=1;
+            nVT[d]=d;
+        }
+}
 
     cout << "number of composition failures: " << (docounter-1) << endl;
     cout << "fst eliminated is #: " << d << endl;
@@ -293,6 +339,7 @@ int main()
     //cout << "size of randfstind: " << (int) randfstind.size();
 //---------compute and store interaction network complexity-------//
     // determine if new machine has identities in the population
+/*
     for (int j=0; j<N; j++)
     {
     if (RandEquivalent(VT[d],VT[j],10,0))
@@ -304,6 +351,8 @@ int main()
             popID[j][d]=0;
         }
     }
+*/
+
 
 
 //---------print interaction network---------------//
