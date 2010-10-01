@@ -211,14 +211,16 @@ int main()
     //Array2D<bool> popID(N,N);
     //map<int, int> popID;
     //map<int, int>::iterator it;
-    vector<int> popdist; // extract the population type distribution
-    vector<double> popfreq;
-    double psize = N;
+    vector<int> popdist; // container for population type distribution
+    vector<double> popfreq; // container for population type frequency = popdist/N
+    double psize = N; // double version of N for computing popfreq
 
     typedef list< pair<StdVectorFst, int> > FSTcatalog;
     FSTcatalog popID;
     FSTcatalog::iterator it;
 
+    typedef vector< Array2D<double> > MatrixGroup;
+    MatrixGroup intxnNet;
 
     for (int n=0; n<N; n++)
     {
@@ -260,12 +262,20 @@ int main()
     copy(popdist.begin(),popdist.end(), output); cout << "\n\n\n";
     copy(popfreq.begin(),popfreq.end(), outd);cout << "\n\n\n";
 
+    Array2D< double > ZeroArray(popID.size(),popID.size(), 0.0);
+
+    for (int i=0; i<popID.size(); i++)
+    {
+        intxnNet.push_back(ZeroArray);
+    }
+    cout << "number of matrices in intxnNet: " << (int) intxnNet.size() << endl;
+
 //-------------------Select two FSTs at random for composition------------//
     StdVectorFst compres; // Container for composition result
     StdVectorFst result; // Container for minimized composition result.
 
-    StdVectorFst T1; int T1type; int T1freq;
-    StdVectorFst T2; int T2type; int T2freq;
+    StdVectorFst T1; int T1type; double T1freq;
+    StdVectorFst T2; int T2type; double T2freq;
     int docounter = 0;
     int dolimit = 100;
 
@@ -284,36 +294,13 @@ int main()
         advance(it,ran_popdist[0]);
             T1 = (*it).first;
             T1type = ran_popdist[0];
-            T1freq = (*it).second;
+            T1freq = (*it).second/psize;
 
         it=popID.begin();
         advance(it,ran_popdist[1]);
             T2 = (*it).first;
             T2type = ran_popdist[1];
-            T2freq = (*it).second;
-
-/*
-        int counter = 0;
-        for (it=popID.begin(); it!=popID.end() ; it++)
-        {
-            if (ran_popdist[0]==counter)
-            {
-                T1 = (*it).first;
-                T1type = counter;
-                T1freq = (*it).second;
-            }
-            if (ran_popdist[1]==counter)
-            {
-                T2 = (*it).first;
-                T2type = counter;
-                T2freq = (*it).second;
-            }
-        }
-*/
-
-       // randfstind = gslrandgen(3,N-1);
-       // T1 = VT[randfstind[0]];
-       // T2 = VT[randfstind[1]];
+            T2freq = (*it).second/psize;
 
         T1.Write("onestate/T1.fst");
         T2.Write("onestate/T2.fst");
@@ -326,15 +313,13 @@ int main()
 
         // Create the composed FST.
         Compose(T1, T2, &result);
-        //Determinize(compres);
         //Minimize(&compres, &result);
 
         //cout << "number of states in result:" << GetStates(result) << endl;
-        //cout << "$$result start state is " << result.Start() << endl;
-        if ((Verify(result)) && (result.Start() != -1))
-        {
-            result.Write("onestate/T3.fst");
-        }
+        //cout << "result start state is: " << result.Start() << endl;
+
+        result.Write("onestate/T3.fst");
+
         //cout << "composition result is:" << Verify(result) << endl;
 
         //prevent infinite loop
@@ -351,6 +336,7 @@ int main()
     int d = ran_popdist[2]; // index of machine type scheduled for removal
 
     bool IDswitch = 1;
+    int counter = 0;
     for (it=popID.begin(); it!=popID.end() ; it++)
     {
         StdVectorFst ProT = (*it).first; //ProT = prototype from list
@@ -359,12 +345,27 @@ int main()
             {
                 (*it).second = (*it).second + 1;
                 IDswitch = 0;
+                //need to extract new population frequency vector from popID and update T1freq/T2freq
+                popfreq[counter] = (*it).second/psize;
+                if (counter==T1type) {T1freq = (T1freq*psize+1)/N;}
+                if (counter==T2type) {T2freq = (T2freq*psize+1)/N;}
+
+                intxnNet[counter][T1type][T2type]= T1freq*T2freq;
+                //need to iterate through row "counter" and column "counter" of each matrix and update frequencies
+
                 break;
             }
+        counter++;
     }
     if (IDswitch)
     {
         popID.push_back( make_pair(result,1) );
+        popfreq.push_back(1/psize);
+        //need to add a row and a column to each matrix
+        //need to add a row and a column to ZeroArray
+        intxnNet.push_back(ZeroArray);
+        intxnNet[intxnNet.size()][T1type][T2type]= T1freq*T2freq;
+
     }
 
 
@@ -373,8 +374,15 @@ int main()
         if((*it).second==1)
         {
             popID.erase(it);
+       //     intxnNet.erase(intxnNet.begin()+d-1); //segmentation fault
+       //     popfreq.erase(popfreq.begin()+d-1);
+            //need to erase row d and column d from each matrix in intxnNet
+
         }else {
             (*it).second = (*it).second - 1;
+            //extract new population frequency vector from popID
+       //     popfreq[d] = (*it).second/psize;
+            //need to iterate through row d and column d of each matrix and update frequencies
         }
 
 
