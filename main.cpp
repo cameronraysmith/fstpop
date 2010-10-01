@@ -17,6 +17,7 @@
 
 //-------------openFST--------------//
 /*--------
+http://openfst.org/
 statically linked shared libraries for openfst
 /usr/local/lib/libfst.so
 /usr/local/lib/libfstfar.so
@@ -32,6 +33,7 @@ linker search directories for dynamically linked libraries
 
 //--------------TNT----------------//
 /*--------
+http://math.nist.gov/tnt/index.html
 pure template library
 headers at /usr/include/tnt
 --------- */
@@ -39,13 +41,15 @@ headers at /usr/include/tnt
 
 //--------------GSL----------------//
 /*-------------
+http://www.gnu.org/software/gsl/manual/html_node/
 statically linked shared libraries for gsl
 /usr/lib/libgsl.so
 /usr/lib/libgslcblas.so
 
-headers at /usr/include/tnt
+headers at /usr/include/gsl
 --------*/
 #include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
 
 #define N 50 // set population size
 #define GEN 100 // set number of generations
@@ -127,7 +131,17 @@ StdVectorFst randfst()
     if (arcbit[rout[3]*4+2]) { Ra.AddArc(1, StdArc(2, 1, 0, 0)); }
     if (arcbit[rout[3]*4+3]) { Ra.AddArc(1, StdArc(2, 2, 0, 0)); }
 */
-    return Ra;
+
+    bool stateconnect = 0;
+    int i = Ra.Start();
+    for (ArcIterator<StdVectorFst> aiter(Ra, i); !aiter.Done(); aiter.Next())
+    {
+      const StdArc &arc = aiter.Value();
+      int ds = arc.nextstate; // store the destination state
+      if (i!=ds){stateconnect=1;}
+    }
+
+    if (Verify(Ra) && stateconnect) {return Ra;} else {return randfst();}
 }
 
 /*template<class Arc>
@@ -156,25 +170,30 @@ int GetStates(const Fst<Arc> &fst) {
             matcher.SetState(i); // i marks the current state
             if (matcher.Find(l))
             for (; !matcher.Done(); matcher.Next())
+            {
             const StdArc &arc = matcher.Value();
             int ds = arc.nextstate; // store the destination state
-            T[i][ds] = 1;
+            T[i][ds] = 1; // need to row normalize this Array2D before using to calculate eigenvectors for stat comp
+            }
         }
     }
 }
 */
 
-//double ncomplexity(map<int, int> U, vector<int> PI) // Unique, Population Index
+//double ncomplexity(list<pair<StdVectorFst, int> > U, vector<int> PI) // Unique, Population Index
 // intending to pass (popID, nVT)
 
 
 int main()
 {
-
+// uses MT19937 generator of Makoto Matsumoto and Takuji Nishimura RNG by defualt
+// Mersenne prime period of 2^19937 - 1 (about 10^6000) and is equi-distributed in 623 dimensions.
+// http://www.gnu.org/software/gsl/manual/html_node/Random-number-generator-algorithms.html
     gsl_rng_env_setup();
 
     T = gsl_rng_default;
     r = gsl_rng_alloc (T);
+    gsl_ran_discrete_t * g;
 //---------do not call gslrandgen or randfst before this point-----//
 
 
@@ -186,25 +205,24 @@ int main()
     fstnames[2]="T3";
 //------------------Generate [population] of FSTs--------------------//
     vector<StdVectorFst> VT (N); // Vector of Transducers (VT) is a container for the population
-    vector<int> nVT (N);
-    vector<int> randfstind(0);
+    //vector<int> nVT (N);
+    //vector<int> randfstind(0);
+    vector<int> ran_popdist (3);
     //Array2D<bool> popID(N,N);
     //map<int, int> popID;
     //map<int, int>::iterator it;
+    vector<int> popdist; // extract the population type distribution
+    vector<double> popfreq;
+    double psize = N;
 
-    typedef list< pair<StdVectorFst, int> > FSTindex;
-    FSTindex popID;
-    FSTindex::iterator it;
+    typedef list< pair<StdVectorFst, int> > FSTcatalog;
+    FSTcatalog popID;
+    FSTcatalog::iterator it;
 
 
     for (int n=0; n<N; n++)
     {
-        StdVectorFst tempFST;
-        do
-        {
-            VT[n] = randfst();
-            tempFST = VT[n];
-        } while (Verify(tempFST) == 0);
+        VT[n] = randfst();
     }
 
     //determine the number of unique individuals in the population
@@ -229,68 +247,25 @@ int main()
             popID.push_back( make_pair(VT[i],1) );
         }
     }
-    cout << "popID size: " << (int) popID.size() << endl;
+    cout << "popID size: " << (int) popID.size() << "\n\n";
 
-    vector<int> popdist; // extract the population type distribution
-    vector<double> popfreq;
-    double psize = N;
+
     for (it=popID.begin(); it!=popID.end() ; it++)
     {
         popdist.push_back((*it).second);
-        popfreq.push_back((((*it).second)/psize));
+        popfreq.push_back((*it).second/psize);
     }
     ostream_iterator< int > output( cout, " " );
     ostream_iterator< double > outd( cout, " " );
     copy(popdist.begin(),popdist.end(), output); cout << "\n\n\n";
     copy(popfreq.begin(),popfreq.end(), outd);cout << "\n\n\n";
 
-
-
-
-/*    for (int i=1; i<N; i++)
-    {
-        bool IDswitch = 1;
-        for (it=popID.begin(); it!=popID.end() ; it++)
-        {
-            int j = (*it).first;
-            if (RandEquivalent(VT[i],VT[j],10,0))
-                {
-                    popID[j]=popID[j]+1;
-                    IDswitch = 0;
-                    nVT[i]=j;
-                    break;
-                }
-        }
-        if (IDswitch)
-        {
-            popID[i]=1;
-            nVT[i]=i;
-        }
-    }
-*/
-
-/*   for (int i=0; i<N; i++)
-    {
-        for (int j=i; j<N; j++)
-        {
-        if (RandEquivalent(VT[i],VT[j],10,0))
-            {
-                popID[i][j]=1;
-                popID[j][i]=1;
-            }
-            cout << popID[i][j] ;
-        }
-    }
-*/
-
-//    vector<bool> G (popID.size(),popID.size(),popID.size())
-
 //-------------------Select two FSTs at random for composition------------//
     StdVectorFst compres; // Container for composition result
     StdVectorFst result; // Container for minimized composition result.
 
-    StdVectorFst T1;
-    StdVectorFst T2;
+    StdVectorFst T1; int T1type; int T1freq;
+    StdVectorFst T2; int T2type; int T2freq;
     int docounter = 0;
     int dolimit = 100;
 
@@ -300,13 +275,45 @@ int main()
         // 1: first machine in composition
         // 2: second machine in compositon
         // 3: machine scheduled for replacement
-        randfstind = gslrandgen(3,N-1);
+        g = gsl_ran_discrete_preproc (popID.size(), &popfreq[0]); // can pass &vector[0] to function expecting an array
 
+//??????
+        for (int i=0; i<3; i++) {ran_popdist[i]= gsl_ran_discrete (r, g);} // will this go from 0 to popID.size()??
 
-        T1 = VT[randfstind[0]];
+        it=popID.begin();
+        advance(it,ran_popdist[0]);
+            T1 = (*it).first;
+            T1type = ran_popdist[0];
+            T1freq = (*it).second;
 
+        it=popID.begin();
+        advance(it,ran_popdist[1]);
+            T2 = (*it).first;
+            T2type = ran_popdist[1];
+            T2freq = (*it).second;
 
-        T2 = VT[randfstind[1]];
+/*
+        int counter = 0;
+        for (it=popID.begin(); it!=popID.end() ; it++)
+        {
+            if (ran_popdist[0]==counter)
+            {
+                T1 = (*it).first;
+                T1type = counter;
+                T1freq = (*it).second;
+            }
+            if (ran_popdist[1]==counter)
+            {
+                T2 = (*it).first;
+                T2type = counter;
+                T2freq = (*it).second;
+            }
+        }
+*/
+
+       // randfstind = gslrandgen(3,N-1);
+       // T1 = VT[randfstind[0]];
+       // T2 = VT[randfstind[1]];
 
         T1.Write("onestate/T1.fst");
         T2.Write("onestate/T2.fst");
@@ -340,49 +347,52 @@ int main()
 
     } while ((Verify(result) == 0) | (result.Start() == -1));
 
-    int d = randfstind[2]; // index of machine scheduled for replacement
+    //int d = randfstind[2]; // index of machine scheduled for replacement
+    int d = ran_popdist[2]; // index of machine type scheduled for removal
 
-
-
- /*
-    popID[nVT[d]] = popID[nVT[d]] - 1;
-
-
-    if (popID[nVT[d]]==0) // d was the index to a unique individual that was eliminated
-                          // since nVT only contains values that ARE keys in the map
-    {
-        popID.erase(d);
-        VT[d] = result;
-    } else if(nVT[d]==d) // d was the index to the prototype of a set of identical FSTs
-    {
-        int pos = find(nVT.rbegin(), nVT.rend(), d) - nVT.rbegin();
-        VT[pos]=result;
-        d = pos;
-    } else // d was the index to an individual that was contained within a set whose prototype index is < d
-    {
-        VT[d] = result;
-    }
-
-{
     bool IDswitch = 1;
-        for (it=popID.begin(); it!=popID.end() ; it++)
-        {
-            int j = (*it).first;
-            if (RandEquivalent(VT[d],VT[j],10,0))
+    for (it=popID.begin(); it!=popID.end() ; it++)
+    {
+        StdVectorFst ProT = (*it).first; //ProT = prototype from list
+
+        if (RandEquivalent(result,ProT,10,0))
             {
-                popID[j]=popID[j]+1;
-                nVT[d]=j;
+                (*it).second = (*it).second + 1;
                 IDswitch = 0;
                 break;
             }
-        }
-        if (IDswitch) // the child was not equivlanet to any of the members of the parent population
+    }
+    if (IDswitch)
+    {
+        popID.push_back( make_pair(result,1) );
+    }
+
+
+    it=popID.begin();
+    advance(it,d);
+        if((*it).second==1)
         {
-            popID[d]=1;
-            nVT[d]=d;
+            popID.erase(it);
+        }else {
+            (*it).second = (*it).second - 1;
         }
-}
+
+
+ /*   int counter = 0;
+    for (it=popID.begin(); it!=popID.end() ; it++)
+    {
+        if (d==counter)
+        {
+            if((*it).second==1)
+            {
+                popID.erase(it);
+            }else {
+                (*it).second = (*it).second - 1;
+            }
+        }
+    }
 */
+
 
     cout << "number of composition failures: " << (docounter-1) << endl;
     cout << "fst eliminated is #: " << d << endl;
@@ -393,20 +403,6 @@ int main()
 
     //cout << "size of randfstind: " << (int) randfstind.size();
 //---------compute and store interaction network complexity-------//
-    // determine if new machine has identities in the population
-/*
-    for (int j=0; j<N; j++)
-    {
-    if (RandEquivalent(VT[d],VT[j],10,0))
-        {
-            popID[d][j]=1;
-            popID[j][d]=1;
-        } else {
-            popID[d][j]=0;
-            popID[j][d]=0;
-        }
-    }
-*/
 
 
 
@@ -431,6 +427,7 @@ int main()
     } else { cout << "No command interpreter available \n"; };
 
     gsl_rng_free (r);
+    gsl_ran_discrete_free (g);
     return 0;
 
 }
