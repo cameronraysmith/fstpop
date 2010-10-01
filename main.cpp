@@ -11,6 +11,9 @@
 #include <cstring>
 #include <vector>
 #include <bitset>
+#include <algorithm>
+#include <numeric> // for accumulate
+#include <iterator>
 
 //-------------openFST--------------//
 /*--------
@@ -186,33 +189,65 @@ int main()
     vector<int> nVT (N);
     vector<int> randfstind(0);
     //Array2D<bool> popID(N,N);
-    map<int, int> popID;
-    map<int, int>::iterator it;
+    //map<int, int> popID;
+    //map<int, int>::iterator it;
+
+    typedef list< pair<StdVectorFst, int> > FSTindex;
+    FSTindex popID;
+    FSTindex::iterator it;
+
 
     for (int n=0; n<N; n++)
     {
+        StdVectorFst tempFST;
         do
         {
             VT[n] = randfst();
-        } while (Verify(VT[n]) == 0);
+            tempFST = VT[n];
+        } while (Verify(tempFST) == 0);
     }
 
     //determine the number of unique individuals in the population
 
- /*   for (int i=0; i<N; i++)
+    popID.push_back( make_pair(VT[0],1) );
+    for (int i=1; i<N; i++)
     {
-        for (int j=i; j<N; j++)
+        bool IDswitch = 1;
+        for (it=popID.begin(); it!=popID.end() ; it++)
         {
-        if (RandEquivalent(VT[i],VT[j],10,0))
-            {
-                popID[i][j]=1;
-                popID[j][i]=1;
-            }
-            cout << popID[i][j] ;
+            StdVectorFst ProT = (*it).first; //ProT = prototype from list
+
+            if (RandEquivalent(VT[i],ProT,10,0))
+                {
+                    (*it).second = (*it).second + 1;
+                    IDswitch = 0;
+                    break;
+                }
+        }
+        if (IDswitch)
+        {
+            popID.push_back( make_pair(VT[i],1) );
         }
     }
-*/
-    for (int i=0; i<N; i++)
+    cout << "popID size: " << (int) popID.size() << endl;
+
+    vector<int> popdist; // extract the population type distribution
+    vector<double> popfreq;
+    double psize = N;
+    for (it=popID.begin(); it!=popID.end() ; it++)
+    {
+        popdist.push_back((*it).second);
+        popfreq.push_back((((*it).second)/psize));
+    }
+    ostream_iterator< int > output( cout, " " );
+    ostream_iterator< double > outd( cout, " " );
+    copy(popdist.begin(),popdist.end(), output); cout << "\n\n\n";
+    copy(popfreq.begin(),popfreq.end(), outd);cout << "\n\n\n";
+
+
+
+
+/*    for (int i=1; i<N; i++)
     {
         bool IDswitch = 1;
         for (it=popID.begin(); it!=popID.end() ; it++)
@@ -232,6 +267,21 @@ int main()
             nVT[i]=i;
         }
     }
+*/
+
+/*   for (int i=0; i<N; i++)
+    {
+        for (int j=i; j<N; j++)
+        {
+        if (RandEquivalent(VT[i],VT[j],10,0))
+            {
+                popID[i][j]=1;
+                popID[j][i]=1;
+            }
+            cout << popID[i][j] ;
+        }
+    }
+*/
 
 //    vector<bool> G (popID.size(),popID.size(),popID.size())
 
@@ -291,6 +341,10 @@ int main()
     } while ((Verify(result) == 0) | (result.Start() == -1));
 
     int d = randfstind[2]; // index of machine scheduled for replacement
+
+
+
+ /*
     popID[nVT[d]] = popID[nVT[d]] - 1;
 
 
@@ -328,6 +382,7 @@ int main()
             nVT[d]=d;
         }
 }
+*/
 
     cout << "number of composition failures: " << (docounter-1) << endl;
     cout << "fst eliminated is #: " << d << endl;
