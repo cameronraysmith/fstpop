@@ -37,7 +37,7 @@ http://math.nist.gov/tnt/index.html
 pure template library
 headers at /usr/include/tnt
 --------- */
-#include <tnt/tnt_array2d.h>
+//#include <tnt/tnt_array2d.h>
 
 //--------------GSL----------------//
 /*-------------
@@ -51,12 +51,17 @@ headers at /usr/include/gsl
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
+//------------classes------------//
+#include "FSTcatalog.h"
+//#include "MMatrix.h"
+
 #define N 50 // set population size
 #define GEN 100 // set number of generations
 
 using namespace fst;
 using namespace TNT;
 using namespace std;
+
 
 //-------initialize global variables for gsl RNG-----------//
 const gsl_rng_type * T;
@@ -196,7 +201,15 @@ int main()
     gsl_ran_discrete_t * g;
 //---------do not call gslrandgen or randfst before this point-----//
 
-
+/*
+MMatrix trial(5,3);
+cout << trial.dim1() << "-by-" << trial.dim2() << endl;
+cout << trial[4][2] << endl;
+trial.addrow();
+trial.addcolumn();
+cout << trial.dim1() << "-by-" << trial.dim2() << endl;
+cout << trial[5][3] << endl;
+*/
     int fstnum = 3;
     string fstnames[fstnum];
 
@@ -205,70 +218,22 @@ int main()
     fstnames[2]="T3";
 //------------------Generate [population] of FSTs--------------------//
     vector<StdVectorFst> VT (N); // Vector of Transducers (VT) is a container for the population
-    //vector<int> nVT (N);
-    //vector<int> randfstind(0);
+
     vector<int> ran_popdist (3);
-    //Array2D<bool> popID(N,N);
-    //map<int, int> popID;
-    //map<int, int>::iterator it;
-    vector<int> popdist; // container for population type distribution
-    vector<double> popfreq; // container for population type frequency = popdist/N
+
     double psize = N; // double version of N for computing popfreq
 
-    typedef list< pair<StdVectorFst, int> > FSTcatalog;
-    FSTcatalog popID;
-    FSTcatalog::iterator it;
-
-    typedef vector< Array2D<double> > MatrixGroup;
-    MatrixGroup intxnNet;
+    //typedef vector< MMatrix > MatrixGroup;
+    //MatrixGroup intxnNet;
 
     for (int n=0; n<N; n++)
     {
         VT[n] = randfst();
     }
 
-    //determine the number of unique individuals in the population
+    //determine the number of unique individuals in the population...in constructor of FSTcatalog
 
-    popID.push_back( make_pair(VT[0],1) );
-    for (int i=1; i<N; i++)
-    {
-        bool IDswitch = 1;
-        for (it=popID.begin(); it!=popID.end() ; it++)
-        {
-            StdVectorFst ProT = (*it).first; //ProT = prototype from list
-
-            if (RandEquivalent(VT[i],ProT,10,0))
-                {
-                    (*it).second = (*it).second + 1;
-                    IDswitch = 0;
-                    break;
-                }
-        }
-        if (IDswitch)
-        {
-            popID.push_back( make_pair(VT[i],1) );
-        }
-    }
-    cout << "popID size: " << (int) popID.size() << "\n\n";
-
-
-    for (it=popID.begin(); it!=popID.end() ; it++)
-    {
-        popdist.push_back((*it).second);
-        popfreq.push_back((*it).second/psize);
-    }
-    ostream_iterator< int > output( cout, " " );
-    ostream_iterator< double > outd( cout, " " );
-    copy(popdist.begin(),popdist.end(), output); cout << "\n\n\n";
-    copy(popfreq.begin(),popfreq.end(), outd);cout << "\n\n\n";
-
-    Array2D< double > ZeroArray(popID.size(),popID.size(), 0.0);
-
-    for (int i=0; i<popID.size(); i++)
-    {
-        intxnNet.push_back(ZeroArray);
-    }
-    cout << "number of matrices in intxnNet: " << (int) intxnNet.size() << endl;
+    FSTcatalog popInfo(VT);
 
 //-------------------Select two FSTs at random for composition------------//
     StdVectorFst compres; // Container for composition result
@@ -285,18 +250,19 @@ int main()
         // 1: first machine in composition
         // 2: second machine in compositon
         // 3: machine scheduled for replacement
-        g = gsl_ran_discrete_preproc (popID.size(), &popfreq[0]); // can pass &vector[0] to function expecting an array
+        g = gsl_ran_discrete_preproc (popInfo.popID.size(), &popInfo.popdist[0]); // can pass &vector[0] to function expecting an array
 
-//??????
         for (int i=0; i<3; i++) {ran_popdist[i]= gsl_ran_discrete (r, g);} // will this go from 0 to popID.size()??
 
-        it=popID.begin();
+        FSTlist::iterator it;
+
+        it=popInfo.popID.begin();
         advance(it,ran_popdist[0]);
             T1 = (*it).first;
             T1type = ran_popdist[0];
             T1freq = (*it).second/psize;
 
-        it=popID.begin();
+        it=popInfo.popID.begin();
         advance(it,ran_popdist[1]);
             T2 = (*it).first;
             T2type = ran_popdist[1];
@@ -335,72 +301,7 @@ int main()
     //int d = randfstind[2]; // index of machine scheduled for replacement
     int d = ran_popdist[2]; // index of machine type scheduled for removal
 
-    bool IDswitch = 1;
-    int counter = 0;
-    for (it=popID.begin(); it!=popID.end() ; it++)
-    {
-        StdVectorFst ProT = (*it).first; //ProT = prototype from list
-
-        if (RandEquivalent(result,ProT,10,0))
-            {
-                (*it).second = (*it).second + 1;
-                IDswitch = 0;
-                //need to extract new population frequency vector from popID and update T1freq/T2freq
-                popfreq[counter] = (*it).second/psize;
-                if (counter==T1type) {T1freq = (T1freq*psize+1)/N;}
-                if (counter==T2type) {T2freq = (T2freq*psize+1)/N;}
-
-                intxnNet[counter][T1type][T2type]= T1freq*T2freq;
-                //need to iterate through row "counter" and column "counter" of each matrix and update frequencies
-
-                break;
-            }
-        counter++;
-    }
-    if (IDswitch)
-    {
-        popID.push_back( make_pair(result,1) );
-        popfreq.push_back(1/psize);
-        //need to add a row and a column to each matrix
-        //need to add a row and a column to ZeroArray
-        intxnNet.push_back(ZeroArray);
-        intxnNet[intxnNet.size()][T1type][T2type]= T1freq*T2freq;
-
-    }
-
-
-    it=popID.begin();
-    advance(it,d);
-        if((*it).second==1)
-        {
-            popID.erase(it);
-       //     intxnNet.erase(intxnNet.begin()+d-1); //segmentation fault
-       //     popfreq.erase(popfreq.begin()+d-1);
-            //need to erase row d and column d from each matrix in intxnNet
-
-        }else {
-            (*it).second = (*it).second - 1;
-            //extract new population frequency vector from popID
-       //     popfreq[d] = (*it).second/psize;
-            //need to iterate through row d and column d of each matrix and update frequencies
-        }
-
-
- /*   int counter = 0;
-    for (it=popID.begin(); it!=popID.end() ; it++)
-    {
-        if (d==counter)
-        {
-            if((*it).second==1)
-            {
-                popID.erase(it);
-            }else {
-                (*it).second = (*it).second - 1;
-            }
-        }
-    }
-*/
-
+    popInfo.update(result, d, T1type, T2type);
 
     cout << "number of composition failures: " << (docounter-1) << endl;
     cout << "fst eliminated is #: " << d << endl;
