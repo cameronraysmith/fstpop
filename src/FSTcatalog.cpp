@@ -3,17 +3,19 @@
 
     FSTcatalog::FSTcatalog(vector<StdVectorFst> V)
     {
+        N=V.size(); // store population size
+
         FSTlist::iterator it;
 
         popID.push_back( make_pair(V[0],1) );
-        for (int i=1; i<V.size(); i++)
+        for (unsigned int i=1; i<V.size(); i++)
         {
             bool IDswitch = 1;
             for (it=popID.begin(); it!=popID.end() ; it++)
             {
                 StdVectorFst ProT = (*it).first; //ProT = prototype from list
 
-                if (RandEquivalent(V[i],ProT,10,0))
+                if (RandEquivalent(V[i],ProT,100,0))
                     {
                         (*it).second = (*it).second + 1;
                         IDswitch = 0;
@@ -43,7 +45,7 @@
         intxnNet.push_back(ZeroArray);
         }
         cout << "number of matrices in intxnNet: " << (int) intxnNet.size() << endl;
-        }
+    }
 
     FSTcatalog::~FSTcatalog()
     {
@@ -52,7 +54,7 @@
 
     void FSTcatalog::update(StdVectorFst result, int d, int T1type, int T2type)
     {
-        FSTcatalog &C = *this;
+        FSTcatalog &C = *this; // corresponds to FSTcatalog popInfo in main.cpp
         FSTlist::iterator it;
 
         //--------update C.popID with the composition result --------//
@@ -62,7 +64,7 @@
         {
             StdVectorFst ProT = (*it).first; //ProT = prototype from list
 
-            if (RandEquivalent(result,ProT,10,0))
+            if (RandEquivalent(result,ProT,100,0))
                 {
                     (*it).second = (*it).second + 1;
 
@@ -84,7 +86,7 @@
                 C.intxnNet[i].addrow();
                 C.intxnNet[i].addcolumn();
             }
-            C.intxnNet[C.intxnNet.size()][T1type][T2type]= 1;
+            C.intxnNet[C.intxnNet.size()-1][T1type][T2type]= 1;
         }
 
         //-------update C.popID based upon the individual randomly selected for removal
@@ -104,6 +106,47 @@
             (*it).second = (*it).second - 1;
         }
 
+        //-------update C.popdist----------------
+        C.popdist.clear();
+        for (it=C.popID.begin(); it!=C.popID.end() ; it++)
+        {
+            popdist.push_back((*it).second);
+        }
+    }
+
+    double FSTcatalog::ncomplexity()
+    {
+        FSTcatalog &C = *this;
+        double Cmu = 0;
+        vector<double> vjk;
+        double Vi;
+        int count = 0;
+
+        for (int i=0; i<C.intxnNet.size(); i++)
+        {
+            vjk.clear();
+            Vi = 0;
+
+            for (int j=0; j<C.intxnNet[0].dim1(); j++)
+            {
+                for (int k=0; k<C.intxnNet[0].dim2(); k++)
+                {
+                    if (C.intxnNet[i][j][k])
+                    {
+                        vjk.push_back(C.popdist[j]/C.N*C.popdist[k]/C.N);
+                        Vi += C.popdist[j]/C.N*C.popdist[k]/C.N;
+                        count++;
+                        cout << "indices from intxNet with 1s: " << i << ", " << j << ", " << k << endl;
+                    }
+                }
+            }
+            for(int l=0; l<vjk.size(); l++)
+            {
+                Cmu += -(vjk[l]/Vi*log2(vjk[l]/Vi));
+            }
+        }
+        cout << "number of 1s in intxnNet: " << count << endl;
+        return Cmu;
     }
 
 /**/

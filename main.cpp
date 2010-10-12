@@ -6,6 +6,7 @@
 ----*/
 #include <iostream>
 #include <fstream>
+#include <ostream>
 #include <stdlib.h>
 #include <string>
 #include <cstring>
@@ -55,11 +56,11 @@ headers at /usr/include/gsl
 #include "FSTcatalog.h"
 //#include "MMatrix.h"
 
-#define N 50 // set population size
+#define POP 50 // set population size
 #define GEN 100 // set number of generations
 
 using namespace fst;
-using namespace TNT;
+//using namespace TNT;
 using namespace std;
 
 
@@ -146,7 +147,7 @@ StdVectorFst randfst()
       if (i!=ds){stateconnect=1;}
     }
 
-    if (Verify(Ra) && stateconnect) {return Ra;} else {return randfst();}
+    if (Verify(Ra) && stateconnect) {return Ra;} else {randfst();}
 }
 
 /*template<class Arc>
@@ -188,7 +189,6 @@ int GetStates(const Fst<Arc> &fst) {
 //double ncomplexity(list<pair<StdVectorFst, int> > U, vector<int> PI) // Unique, Population Index
 // intending to pass (popID, nVT)
 
-
 int main()
 {
 // uses MT19937 generator of Makoto Matsumoto and Takuji Nishimura RNG by defualt
@@ -217,16 +217,16 @@ cout << trial[5][3] << endl;
     fstnames[1]="T2";
     fstnames[2]="T3";
 //------------------Generate [population] of FSTs--------------------//
-    vector<StdVectorFst> VT (N); // Vector of Transducers (VT) is a container for the population
+    vector<StdVectorFst> VT (POP); // Vector of Transducers (VT) is a container for the population
 
     vector<int> ran_popdist (3);
 
-    double psize = N; // double version of N for computing popfreq
+    //double psize = N; // double version of N for computing popfreq
 
     //typedef vector< MMatrix > MatrixGroup;
     //MatrixGroup intxnNet;
 
-    for (int n=0; n<N; n++)
+    for (int n=0; n<POP; n++)
     {
         VT[n] = randfst();
     }
@@ -236,14 +236,18 @@ cout << trial[5][3] << endl;
     FSTcatalog popInfo(VT);
 
 //-------------------Select two FSTs at random for composition------------//
-    StdVectorFst compres; // Container for composition result
+  //  StdVectorFst compres; // Container for composition result
     StdVectorFst result; // Container for minimized composition result.
 
-    StdVectorFst T1; int T1type; double T1freq;
-    StdVectorFst T2; int T2type; double T2freq;
+    StdVectorFst T1; int T1type; //double T1freq;
+    StdVectorFst T2; int T2type; //double T2freq;
     int docounter = 0;
     int dolimit = 100;
+    vector<double> CmuG;
+    FSTlist::iterator it;
 
+for(int x=0; x<GEN; x++)
+{
     do
     {
         // generate 3 random integers from 0 to N-1
@@ -254,22 +258,20 @@ cout << trial[5][3] << endl;
 
         for (int i=0; i<3; i++) {ran_popdist[i]= gsl_ran_discrete (r, g);} // will this go from 0 to popID.size()??
 
-        FSTlist::iterator it;
-
         it=popInfo.popID.begin();
         advance(it,ran_popdist[0]);
             T1 = (*it).first;
             T1type = ran_popdist[0];
-            T1freq = (*it).second/psize;
+            //T1freq = (*it).second/psize;
 
         it=popInfo.popID.begin();
         advance(it,ran_popdist[1]);
             T2 = (*it).first;
             T2type = ran_popdist[1];
-            T2freq = (*it).second/psize;
+            //T2freq = (*it).second/psize;
 
-        T1.Write("onestate/T1.fst");
-        T2.Write("onestate/T2.fst");
+ //       T1.Write("onestate/T1.fst");
+ //       T2.Write("onestate/T2.fst");
 
         // The FSTs must be sorted along the dimensions they will be joined.
         // In fact, only one needs to be so sorted.
@@ -284,7 +286,7 @@ cout << trial[5][3] << endl;
         //cout << "number of states in result:" << GetStates(result) << endl;
         //cout << "result start state is: " << result.Start() << endl;
 
-        result.Write("onestate/T3.fst");
+ //       result.Write("onestate/T3.fst");
 
         //cout << "composition result is:" << Verify(result) << endl;
 
@@ -303,14 +305,22 @@ cout << trial[5][3] << endl;
 
     popInfo.update(result, d, T1type, T2type);
 
+    CmuG.push_back(popInfo.ncomplexity());
+}
+
+    ofstream ofile("network_complexity.txt");
+    ostream_iterator<double> outit (ofile, "\n");
+    copy(CmuG.begin(), CmuG.end(), outit);
+
+
+    cout << "the interaction network complexity is: " << CmuG[0] << endl;
+
     cout << "number of composition failures: " << (docounter-1) << endl;
-    cout << "fst eliminated is #: " << d << endl;
+//    cout << "fst eliminated is #: " << d << endl;
     cout << "T1 start state is " << T1.Start() << endl;
     cout << "T2 start state is " << T2.Start() << endl;
     cout << "result start state is " << result.Start() << endl;
 
-
-    //cout << "size of randfstind: " << (int) randfstind.size();
 //---------compute and store interaction network complexity-------//
 
 

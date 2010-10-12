@@ -4,6 +4,7 @@
     #include <vector>
     #include <fst/fstlib.h>
     #include "MMatrix.h"
+    #include <cmath>
 
     using namespace fst;
     typedef list< pair<StdVectorFst, int> > FSTlist;
@@ -15,11 +16,13 @@
             FSTlist popID;
             vector<double> popdist; // container for population type distribution...a
             MatrixGroup intxnNet;
+            int N; // population size
 
             FSTcatalog(vector<StdVectorFst> V);
             virtual ~FSTcatalog();
 
             void update(StdVectorFst result, int d, int T1type, int T2type);
+            double ncomplexity();
         protected:
         private:
     };
