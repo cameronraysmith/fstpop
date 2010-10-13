@@ -17,12 +17,34 @@
     {
         //dtor
     }
-
-    Array2D<double> & MMatrix::operator=(const Array2D<double> &A)
+/*
+    MMatrix & MMatrix::operator=(const MMatrix &A)
     {
-        return ref(A);
+        ref(*(dynamic_cast<const Array2D<double>* > (&A)));
+        return *this;
     }
 
+    MMatrix & MMatrix::operator=(const Array2D<double> &A)
+    {
+        ref(A);
+        return *this;
+    }
+
+/*
+    template <class T>
+    Array2D<T> & Array2D<T>::ref(const Array2D<T> &A)
+    {
+        if (this != &A)
+        {
+            v_ = A.v_;
+            data_ = A.data_;
+            m_ = A.m_;
+            n_ = A.n_;
+
+        }
+        return *this;
+    }
+*/
     void MMatrix::removerow(int i)
     {
         MMatrix &M = *this;
@@ -45,7 +67,7 @@
                 out[j][k] = M[j+1][k];
             }
         }
-        M = out.copy();
+        M = out;
     }
 
     void MMatrix::removecolumn(int i)
@@ -70,7 +92,7 @@
                 out[k][j] = M[k][j+1];
             }
         }
-        M = out.copy();
+        M = out;
     }
 
     void MMatrix::addrow()
@@ -87,7 +109,7 @@
             }
         }
 
-        M = out.copy();
+        M = out;
     }
 
     void MMatrix::addcolumn()
@@ -104,6 +126,6 @@
             }
         }
 
-        M = out.copy();
+        M = out;
     }
 /**/

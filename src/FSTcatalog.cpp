@@ -38,10 +38,12 @@
         copy(popdist.begin(),popdist.end(), output); cout << "\n\n\n";
 
         //initialize the group of interaction matrices
-        MMatrix ZeroArray(popID.size(),popID.size());
+       // MMatrix ZeroArray(popID.size(),popID.size());
+
 
         for (unsigned int i=0; i<popID.size(); i++)
         {
+        MMatrix ZeroArray(popID.size(),popID.size());
         intxnNet.push_back(ZeroArray);
         }
         cout << "number of matrices in intxnNet: " << (int) intxnNet.size() << endl;
@@ -57,6 +59,7 @@
         FSTcatalog &C = *this; // corresponds to FSTcatalog popInfo in main.cpp
         FSTlist::iterator it;
 
+
         //--------update C.popID with the composition result --------//
         bool IDswitch = 1;
         int counter = 0;
@@ -70,7 +73,6 @@
             if (RandEquivalent(result,ProT,100,0))
                 {
                     (*it).second = (*it).second + 1;
-
                     C.intxnNet[counter][T1type][T2type] = 1;
 
                     IDswitch = 0;
@@ -78,10 +80,12 @@
                 }
             counter++;
         }
+
+
+
         if (IDswitch)
         {
             C.popID.push_back( make_pair(result,1) );
-
             MMatrix ZeroArray(popID.size(),popID.size());
             C.intxnNet.push_back(ZeroArray);
             for (unsigned int i=0; i<C.intxnNet.size(); i++)
@@ -115,7 +119,7 @@
         C.popdist.clear();
         for (it=C.popID.begin(); it!=C.popID.end() ; it++)
         {
-            popdist.push_back((*it).second);
+            C.popdist.push_back((*it).second);
             popsum += (*it).second;
         }
         cout << "population size is: " << popsum << endl;

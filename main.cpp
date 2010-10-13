@@ -224,13 +224,14 @@ int main()
 
     StdVectorFst T1; int T1type; //double T1freq;
     StdVectorFst T2; int T2type; //double T2freq;
-    int docounter = 0;
     int dolimit = 100;
+    int docounter = 0;
     vector<double> CmuG;
     FSTlist::iterator it;
 
     for(int x=0; x<GEN; x++)
     {
+        docounter = 0;
         do
         {
             // generate 3 random integers from 0 to N-1
@@ -272,7 +273,7 @@ int main()
      //       result.Write("onestate/T3.fst");
 
             //------prevent infinite loop------
-    /*
+    /**/
             if (docounter > dolimit)
             {
                 cout << "# of composition failures exceeded limit: " << dolimit << endl;
