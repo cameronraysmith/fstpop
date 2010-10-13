@@ -147,7 +147,7 @@ StdVectorFst randfst()
       if (i!=ds){stateconnect=1;}
     }
 
-    if (Verify(Ra) && stateconnect) {return Ra;} else {randfst();}
+    if (Verify(Ra) && stateconnect) {return Ra;} else {randfst(); return Ra;}
 }
 
 /*template<class Arc>
@@ -186,9 +186,6 @@ int GetStates(const Fst<Arc> &fst) {
 }
 */
 
-//double ncomplexity(list<pair<StdVectorFst, int> > U, vector<int> PI) // Unique, Population Index
-// intending to pass (popID, nVT)
-
 int main()
 {
 // uses MT19937 generator of Makoto Matsumoto and Takuji Nishimura RNG by defualt
@@ -201,15 +198,6 @@ int main()
     gsl_ran_discrete_t * g;
 //---------do not call gslrandgen or randfst before this point-----//
 
-/*
-MMatrix trial(5,3);
-cout << trial.dim1() << "-by-" << trial.dim2() << endl;
-cout << trial[4][2] << endl;
-trial.addrow();
-trial.addcolumn();
-cout << trial.dim1() << "-by-" << trial.dim2() << endl;
-cout << trial[5][3] << endl;
-*/
     int fstnum = 3;
     string fstnames[fstnum];
 
@@ -220,11 +208,6 @@ cout << trial[5][3] << endl;
     vector<StdVectorFst> VT (POP); // Vector of Transducers (VT) is a container for the population
 
     vector<int> ran_popdist (3);
-
-    //double psize = N; // double version of N for computing popfreq
-
-    //typedef vector< MMatrix > MatrixGroup;
-    //MatrixGroup intxnNet;
 
     for (int n=0; n<POP; n++)
     {
@@ -246,74 +229,71 @@ cout << trial[5][3] << endl;
     vector<double> CmuG;
     FSTlist::iterator it;
 
-for(int x=0; x<GEN; x++)
-{
-    do
+    for(int x=0; x<GEN; x++)
     {
-        // generate 3 random integers from 0 to N-1
-        // 1: first machine in composition
-        // 2: second machine in compositon
-        // 3: machine scheduled for replacement
-        g = gsl_ran_discrete_preproc (popInfo.popID.size(), &popInfo.popdist[0]); // can pass &vector[0] to function expecting an array
-
-        for (int i=0; i<3; i++) {ran_popdist[i]= gsl_ran_discrete (r, g);} // will this go from 0 to popID.size()??
-
-        it=popInfo.popID.begin();
-        advance(it,ran_popdist[0]);
-            T1 = (*it).first;
-            T1type = ran_popdist[0];
-            //T1freq = (*it).second/psize;
-
-        it=popInfo.popID.begin();
-        advance(it,ran_popdist[1]);
-            T2 = (*it).first;
-            T2type = ran_popdist[1];
-            //T2freq = (*it).second/psize;
-
- //       T1.Write("onestate/T1.fst");
- //       T2.Write("onestate/T2.fst");
-
-        // The FSTs must be sorted along the dimensions they will be joined.
-        // In fact, only one needs to be so sorted.
-        // This could have instead been done for "model.fst" when it was created.
-        ArcSort(&T1, StdOLabelCompare());
-        ArcSort(&T2, StdILabelCompare());
-
-        // Create the composed FST.
-        Compose(T1, T2, &result);
-        //Minimize(&compres, &result);
-
-        //cout << "number of states in result:" << GetStates(result) << endl;
-        //cout << "result start state is: " << result.Start() << endl;
-
- //       result.Write("onestate/T3.fst");
-
-        //cout << "composition result is:" << Verify(result) << endl;
-
-        //prevent infinite loop
-        if (docounter > dolimit)
+        do
         {
-            cout << "# of composition failures exceeded limit: " << dolimit << endl;
-            break;
-        }
-        docounter++;
+            // generate 3 random integers from 0 to N-1
+            // 1: first machine in composition
+            // 2: second machine in compositon
+            // 3: machine scheduled for replacement
+            g = gsl_ran_discrete_preproc (popInfo.popID.size(), &popInfo.popdist[0]); // can pass &vector[0] to function expecting an array
 
-    } while ((Verify(result) == 0) | (result.Start() == -1));
+            for (int i=0; i<3; i++) {ran_popdist[i]= gsl_ran_discrete (r, g);} // will this go from 0 to popID.size()??
 
-    //int d = randfstind[2]; // index of machine scheduled for replacement
-    int d = ran_popdist[2]; // index of machine type scheduled for removal
+            it=popInfo.popID.begin();
+            advance(it,ran_popdist[0]);
+                T1 = (*it).first;
+                T1type = ran_popdist[0];
+                //T1freq = (*it).second/psize;
 
-    popInfo.update(result, d, T1type, T2type);
+            it=popInfo.popID.begin();
+            advance(it,ran_popdist[1]);
+                T2 = (*it).first;
+                T2type = ran_popdist[1];
+                //T2freq = (*it).second/psize;
 
-    CmuG.push_back(popInfo.ncomplexity());
-}
+            cout << "T1 type is: " << T1type << ", T2 type is: " << T2type << endl;
+     //       T1.Write("onestate/T1.fst");
+     //       T2.Write("onestate/T2.fst");
+
+            // The FSTs must be sorted along the dimensions they will be joined.
+            // In fact, only one needs to be so sorted.
+            // This could have instead been done for "model.fst" when it was created.
+            ArcSort(&T1, StdOLabelCompare());
+            ArcSort(&T2, StdILabelCompare());
+
+            // Create the composed FST.
+            Compose(T1, T2, &result);
+
+            cout << "number of states in result:" << result.NumStates() << endl;
+            //cout << "result start state is: " << result.Start() << endl;
+
+     //       result.Write("onestate/T3.fst");
+
+            //------prevent infinite loop------
+    /*
+            if (docounter > dolimit)
+            {
+                cout << "# of composition failures exceeded limit: " << dolimit << endl;
+                break;
+            }
+            docounter++;
+    /**/
+        } while ((Verify(result) == 0) | (result.Start() == -1));
+
+        int d = ran_popdist[2]; // index of machine type scheduled for removal
+        cout << "type index scheduled for removal: " << d << endl;
+        popInfo.update(result, d, T1type, T2type);
+
+        CmuG.push_back(popInfo.ncomplexity());
+    }
 
     ofstream ofile("network_complexity.txt");
     ostream_iterator<double> outit (ofile, "\n");
     copy(CmuG.begin(), CmuG.end(), outit);
 
 
-    cout << "the interaction network complexity is: " << CmuG[0] << endl;
 
     cout << "number of composition failures: " << (docounter-1) << endl;
 //    cout << "fst eliminated is #: " << d << endl;
@@ -326,6 +306,8 @@ for(int x=0; x<GEN; x++)
 
 
 //---------print interaction network---------------//
+
+/*
     int cmdtst = system(NULL);
     if ( cmdtst != 0 )
     {
@@ -344,6 +326,7 @@ for(int x=0; x<GEN; x++)
         }
 
     } else { cout << "No command interpreter available \n"; };
+/**/
 
     gsl_rng_free (r);
     gsl_ran_discrete_free (g);

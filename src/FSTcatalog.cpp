@@ -60,15 +60,18 @@
         //--------update C.popID with the composition result --------//
         bool IDswitch = 1;
         int counter = 0;
+
+        StdVectorFst ProT;
+
         for (it=C.popID.begin(); it!=C.popID.end() ; it++)
         {
-            StdVectorFst ProT = (*it).first; //ProT = prototype from list
+            ProT = (*it).first; //ProT = prototype from list
 
             if (RandEquivalent(result,ProT,100,0))
                 {
                     (*it).second = (*it).second + 1;
 
-                    C.intxnNet[counter][T1type][T2type]= 1;
+                    C.intxnNet[counter][T1type][T2type] = 1;
 
                     IDswitch = 0;
                     break;
@@ -81,12 +84,13 @@
 
             MMatrix ZeroArray(popID.size(),popID.size());
             C.intxnNet.push_back(ZeroArray);
-            for (int i=0; i<C.intxnNet.size(); i++)
+            for (unsigned int i=0; i<C.intxnNet.size(); i++)
             {
                 C.intxnNet[i].addrow();
                 C.intxnNet[i].addcolumn();
             }
-            C.intxnNet[C.intxnNet.size()-1][T1type][T2type]= 1;
+            int lastind = C.intxnNet.size()-1;
+            C.intxnNet[lastind][T1type][T2type]= 1;
         }
 
         //-------update C.popID based upon the individual randomly selected for removal
@@ -97,7 +101,7 @@
             C.popID.erase(it);
 
             C.intxnNet.erase(C.intxnNet.begin()+d);
-            for (int i=0; i<C.intxnNet.size(); i++)
+            for (unsigned int i=0; i<C.intxnNet.size(); i++)
             {
                 C.intxnNet[i].removerow(d);
                 C.intxnNet[i].removecolumn(d);
@@ -107,11 +111,14 @@
         }
 
         //-------update C.popdist----------------
+        int popsum=0;
         C.popdist.clear();
         for (it=C.popID.begin(); it!=C.popID.end() ; it++)
         {
             popdist.push_back((*it).second);
+            popsum += (*it).second;
         }
+        cout << "population size is: " << popsum << endl;
     }
 
     double FSTcatalog::ncomplexity()
@@ -122,7 +129,7 @@
         double Vi;
         int count = 0;
 
-        for (int i=0; i<C.intxnNet.size(); i++)
+        for (unsigned int i=0; i<C.intxnNet.size(); i++)
         {
             vjk.clear();
             Vi = 0;
@@ -136,16 +143,16 @@
                         vjk.push_back(C.popdist[j]/C.N*C.popdist[k]/C.N);
                         Vi += C.popdist[j]/C.N*C.popdist[k]/C.N;
                         count++;
-                        cout << "indices from intxNet with 1s: " << i << ", " << j << ", " << k << endl;
+                        cout << "true indices from intxNet: " << i << ",  " << j << ",  " << k << endl;
                     }
                 }
             }
-            for(int l=0; l<vjk.size(); l++)
+            for(unsigned int l=0; l<vjk.size(); l++)
             {
                 Cmu += -(vjk[l]/Vi*log2(vjk[l]/Vi));
             }
         }
-        cout << "number of 1s in intxnNet: " << count << endl;
+        cout << "number of 1s in intxnNet: " << count << endl << endl;
         return Cmu;
     }
 

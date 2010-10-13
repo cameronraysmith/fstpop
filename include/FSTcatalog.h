@@ -3,8 +3,10 @@
     #define FSTCATALOG_H
     #include <vector>
     #include <fst/fstlib.h>
-    #include "MMatrix.h"
     #include <cmath>
+
+    #include "MMatrix.h"
+
 
     using namespace fst;
     typedef list< pair<StdVectorFst, int> > FSTlist;
