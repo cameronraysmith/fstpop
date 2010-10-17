@@ -2,8 +2,17 @@
     #ifndef FSTCATALOG_H
     #define FSTCATALOG_H
     #include <vector>
-    #include <fst/fstlib.h>
     #include <cmath>
+
+    //------------OpenFST-------------//
+    #include <fst/fstlib.h>
+
+    //--------------GSL----------------//
+    #include <gsl/gsl_math.h>
+    #include <gsl/gsl_eigen.h>
+    #include <gsl/gsl_vector.h>
+    #include <gsl/gsl_matrix.h>
+    #include <gsl/gsl_blas.h>
 
     #include "MMatrix.h"
 
@@ -25,6 +34,7 @@
 
             void update(StdVectorFst result, int d, int T1type, int T2type);
             double ncomplexity();
+            double scomplexity();
         protected:
         private:
     };

@@ -51,6 +51,11 @@ headers at /usr/include/gsl
 --------*/
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+//#include <gsl/gsl_math.h>
+//#include <gsl/gsl_eigen.h>
+//#include <gsl/gsl_vector.h>
+//#include <gsl/gsl_matrix.h>
+//#include <gsl/gsl_blas.h>
 
 //------------classes------------//
 #include "FSTcatalog.h"
@@ -108,7 +113,7 @@ StdVectorFst randfst()
     if (rfin[0]) {Ra.SetStart(0);}   else {Ra.SetStart(1);}
     if (rfin[1]) {Ra.SetFinal(1,0);} else {Ra.SetFinal(0,0);} // SetFinal (StateID, weight)
 
-    // Adds arcs exiting state 0 and returning to state 0
+    // Adds arcs exiting state 0
     // Arc constructor args: ilabel, olabel, weight, dest state ID.
     if (arcbit[rout[0]*4+0]) { Ra.AddArc(0, StdArc(1, 1, 0, sout[0])); } // 1st arg is src state ID
     if (arcbit[rout[0]*4+1]) { Ra.AddArc(0, StdArc(1, 2, 0, sout[0])); }
@@ -116,7 +121,7 @@ StdVectorFst randfst()
     if (arcbit[rout[0]*4+3]) { Ra.AddArc(0, StdArc(2, 2, 0, sout[1])); }
 
 
-    // Adds arcs exiting state 1 and returning to state 1
+    // Adds arcs exiting state 1
     // Arc constructor args: ilabel, olabel, weight, dest state ID.
     if (arcbit[rout[1]*4+0]) { Ra.AddArc(1, StdArc(1, 1, 0, sout[2])); } // 1st arg is src state ID
     if (arcbit[rout[1]*4+1]) { Ra.AddArc(1, StdArc(1, 2, 0, sout[2])); }
@@ -139,55 +144,24 @@ StdVectorFst randfst()
 */
 
     bool stateconnect = 0;
-    int i = Ra.Start();
-    for (ArcIterator<StdVectorFst> aiter(Ra, i); !aiter.Done(); aiter.Next())
+    bool tofinal = 0;
+    for (int i = 0; i<=1; i++)
     {
-      const StdArc &arc = aiter.Value();
-      int ds = arc.nextstate; // store the destination state
-      if (i!=ds){stateconnect=1;}
-    }
-
-    if (Verify(Ra) && stateconnect) {return Ra;} else {randfst(); return Ra;}
-}
-
-/*template<class Arc>
-int GetStates(const Fst<Arc> &fst) {
-
-    // Count states
-    int ns = 0;
-    for (StateIterator< Fst<Arc> > siter(fst);
-        !siter.Done();
-        siter.Next())
-        ++ns;
-    return ns;
-}*/
-
-/*double scomplexity(StdVectorFst C)
-{
-    ArcSort(&C, StdILabelCompare());
-    int totst = C.NumStates();
-    Array2D<double> T(totst, totst);
-
-    for (int i=0; i<=totst ; i++)
-    {
-        for (int l=1; l<=2 ; l++)
-        {
-            Matcher matcher(C, MATCH_INPUT);
-            matcher.SetState(i); // i marks the current state
-            if (matcher.Find(l))
-            for (; !matcher.Done(); matcher.Next())
+        for (ArcIterator<StdVectorFst> aiter(Ra, i); !aiter.Done(); aiter.Next())
             {
-            const StdArc &arc = matcher.Value();
-            int ds = arc.nextstate; // store the destination state
-            T[i][ds] = 1; // need to row normalize this Array2D before using to calculate eigenvectors for stat comp
+              const StdArc &arc = aiter.Value();
+              int ds = arc.nextstate; // store the destination state
+              if (ds==rfin[1]) {tofinal = 1;}
+              if (i!=ds){stateconnect=1;}
             }
-        }
     }
+    if ((Verify(Ra) && stateconnect && tofinal)) { return Ra;} else {randfst(); return Ra;}
 }
-*/
+
 
 int main()
 {
+
 // uses MT19937 generator of Makoto Matsumoto and Takuji Nishimura RNG by defualt
 // Mersenne prime period of 2^19937 - 1 (about 10^6000) and is equi-distributed in 623 dimensions.
 // http://www.gnu.org/software/gsl/manual/html_node/Random-number-generator-algorithms.html
@@ -227,6 +201,7 @@ int main()
     int dolimit = 100;
     int docounter = 0;
     vector<double> CmuG;
+    vector<double> avgCmu;
     FSTlist::iterator it;
 
     for(int x=0; x<GEN; x++)
@@ -273,14 +248,14 @@ int main()
      //       result.Write("onestate/T3.fst");
 
             //------prevent infinite loop------
-    /**/
+
             if (docounter > dolimit)
             {
                 cout << "# of composition failures exceeded limit: " << dolimit << endl;
                 break;
             }
             docounter++;
-    /**/
+
         } while ((Verify(result) == 0) | (result.Start() == -1));
 
         int d = ran_popdist[2]; // index of machine type scheduled for removal
@@ -288,11 +263,17 @@ int main()
         popInfo.update(result, d, T1type, T2type);
 
         CmuG.push_back(popInfo.ncomplexity());
+        avgCmu.push_back(popInfo.scomplexity());
+
     }
 
     ofstream ofile("network_complexity.txt");
     ostream_iterator<double> outit (ofile, "\n");
     copy(CmuG.begin(), CmuG.end(), outit);
+
+    ofstream ofile2("individual_complexity.txt");
+    ostream_iterator<double> outit2 (ofile2, "\n");
+    copy(avgCmu.begin(), avgCmu.end(), outit2);
 
 
 
@@ -308,29 +289,131 @@ int main()
 
 //---------print interaction network---------------//
 
-/*
-    int cmdtst = system(NULL);
-    if ( cmdtst != 0 )
-    {
-        for ( int i=0; i<fstnum; i++ )
-        {
 
-            string sh1="fstdraw onestate/.fst onestate/.dot";
-            string sh2="dot -Tps onestate/.dot > onestate/.ps";
-            string sh3="evince onestate/.ps &";
-            string fstname = fstnames[i];
-            sh1.insert(17,fstname); sh1.insert(33,fstname);
-            sh2.insert(18,fstname); sh2.insert(36,fstname);
-            sh3.insert(16,fstname);
-            system(sh1.c_str()); system(sh2.c_str()); system(sh3.c_str());
+//    int cmdtst = system(NULL);
+//    if ( cmdtst != 0 )
+//    {
+//        for ( int i=0; i<fstnum; i++ )
+//        {
+//
+//            string sh1="fstdraw onestate/.fst onestate/.dot";
+//            string sh2="dot -Tps onestate/.dot > onestate/.ps";
+//            string sh3="evince onestate/.ps &";
+//            string fstname = fstnames[i];
+//            sh1.insert(17,fstname); sh1.insert(33,fstname);
+//            sh2.insert(18,fstname); sh2.insert(36,fstname);
+//            sh3.insert(16,fstname);
+//            system(sh1.c_str()); system(sh2.c_str()); system(sh3.c_str());
+//
+//        }
+//
+//    } else { cout << "No command interpreter available \n"; };
 
-        }
-
-    } else { cout << "No command interpreter available \n"; };
-/**/
 
     gsl_rng_free (r);
     gsl_ran_discrete_free (g);
     return 0;
+}
+/*-----------------------------------------------
+    gsl_matrix * m = gsl_matrix_alloc (3,3);
+
+    gsl_matrix_set (m,0,1,1);
+    gsl_matrix_set (m,1,2,1);
+    gsl_matrix_set (m,2,0,1);
+    gsl_matrix_set (m,2,1,1);
+
+    //row normalize
+    for (int i=0; i<(*m).size1; i++)
+    {
+        gsl_vector_view row = gsl_matrix_row(m, i);
+        double rowsum = gsl_blas_dasum(&row.vector);
+        gsl_vector_scale(&row.vector, 1/rowsum);
+    }
+
+    // transpose transition matrix to compute left eigenvectors
+    gsl_matrix_transpose(m);
+
+    gsl_vector_complex *eval = gsl_vector_complex_alloc (3);
+    gsl_matrix_complex *evec = gsl_matrix_complex_alloc (3, 3);
+
+    gsl_eigen_nonsymmv_workspace * w = gsl_eigen_nonsymmv_alloc (3);
+
+    gsl_eigen_nonsymmv (m, eval, evec, w);
+
+    gsl_eigen_nonsymmv_free (w);
+
+    gsl_eigen_nonsymmv_sort (eval, evec, GSL_EIGEN_SORT_ABS_DESC);
+
+    {
+     int i, j;
+
+     for (i = 0; i < 3; i++)
+       {
+         gsl_complex eval_i
+            = gsl_vector_complex_get (eval, i);
+         gsl_vector_complex_view evec_i
+            = gsl_matrix_complex_column (evec, i);
+
+         printf ("eigenvalue = %g + %gi\n",
+                 GSL_REAL(eval_i), GSL_IMAG(eval_i));
+         printf ("eigenvector = \n");
+         for (j = 0; j < 3; ++j)
+           {
+             gsl_complex z =
+               gsl_vector_complex_get(&evec_i.vector, j);
+             printf("%g + %gi\n", GSL_REAL(z), GSL_IMAG(z));
+           }
+       }
+    }
+
+    vector<double> pvec;
+
+ //   cout << "number of evals: " << eval.size << endl;
+    cout << "number of evals: " << (*eval).size << endl;
+
+    for(int i=0; i<(*eval).size; i++)
+        {
+            gsl_complex tempeval = gsl_vector_complex_get(eval, i);
+            cout << "Re(tempeval) = " << tempeval.dat[0] << endl;
+            cout << "Im(tempeval) = " << tempeval.dat[1] << endl;
+
+            if (tempeval.dat[0] && !tempeval.dat[1]) //selects for eigenvalue 1 + 0i // && !tempeval.dat[1]
+            {
+                gsl_vector_complex * compe1vec = gsl_vector_complex_alloc ((*evec).size1);
+                gsl_vector * e1vec = gsl_vector_alloc ((*evec).size1);
+
+                gsl_matrix_complex_get_col(compe1vec, evec, i);
+                gsl_vector_view e1vecview = gsl_vector_complex_real(compe1vec);
+                gsl_vector_memcpy(e1vec, &e1vecview.vector);
+
+                double vecsum = gsl_blas_dasum(e1vec);
+                gsl_vector_scale(e1vec, 1/vecsum);
+
+                for(int j=0; j<(*e1vec).size; j++)
+                {
+                    pvec.push_back(gsl_vector_get(e1vec, j));
+                    cout << "prob: " << pvec[j] << endl;
+                }
+                gsl_vector_complex_free(compe1vec);
+                gsl_vector_free(e1vec);
+            }
+        }
+
+    double Cmu =0;
+    for(unsigned int l=0; l<pvec.size(); l++)
+            {
+                Cmu += -(pvec[l]*log2(pvec[l]));
+            }
+
+    cout << "Cmu = : " << Cmu << endl;
+
+
+    gsl_vector_complex_free(eval);
+    gsl_matrix_complex_free(evec);
+    gsl_matrix_free(m);
+
+
+    return 0;
 
 }
+---------------------------------------------------*/

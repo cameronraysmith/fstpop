@@ -1,4 +1,3 @@
-/**/
     #include "MMatrix.h"
 
     MMatrix::MMatrix(int x, int y) : Array2D<double> (x,y) // use constructor from Array2D
@@ -30,7 +29,7 @@
         return *this;
     }
 
-/*
+
     template <class T>
     Array2D<T> & Array2D<T>::ref(const Array2D<T> &A)
     {
@@ -128,4 +127,30 @@
 
         M = out;
     }
-/**/
+
+    void MMatrix::rownorm()
+    {
+        MMatrix &M = *this;
+
+        MMatrix out(M.dim1(), M.dim2());
+
+        std::vector<double> rowsum;
+
+        for(int j=0; j<M.dim1(); j++)
+        {
+            for (int k=0; k<M.dim2(); k++)
+            {
+                rowsum[j]+= M[j][k];
+            }
+        }
+
+        for(int j=0; j<M.dim1(); j++)
+        {
+            for (int k=0; k<M.dim2(); k++)
+            {
+                out[j][k] = M[j][k]/rowsum[j];
+            }
+        }
+
+        M = out;
+    }
