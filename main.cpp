@@ -171,6 +171,7 @@ int main()
     r = gsl_rng_alloc (T);
     gsl_ran_discrete_t * g;
 //---------do not call gslrandgen or randfst before this point-----//
+    double phi_in = 0.1;
 
     int fstnum = 3;
     string fstnames[fstnum];
@@ -206,57 +207,69 @@ int main()
 
     for(int x=0; x<GEN; x++)
     {
-        docounter = 0;
-        do
+        if(!(gsl_ran_bernoulli(r, phi_in)))
         {
-            // generate 3 random integers from 0 to N-1
-            // 1: first machine in composition
-            // 2: second machine in compositon
-            // 3: machine scheduled for replacement
-            g = gsl_ran_discrete_preproc (popInfo.popID.size(), &popInfo.popdist[0]); // can pass &vector[0] to function expecting an array
+            docounter = 0;
+            do
+            {
+                // generate 3 random integers from 0 to N-1
+                // 1: first machine in composition
+                // 2: second machine in compositon
+                // 3: machine scheduled for replacement
+                g = gsl_ran_discrete_preproc (popInfo.popID.size(), &popInfo.popdist[0]); // can pass &vector[0] to function expecting an array
+                for (int i=0; i<3; i++) {ran_popdist[i]= gsl_ran_discrete (r, g);} // will this go from 0 to popID.size()??
 
+                    it=popInfo.popID.begin();
+                    advance(it,ran_popdist[0]);
+                        T1 = (*it).first;
+                        T1type = ran_popdist[0];
+                        //T1freq = (*it).second/psize;
+
+                    it=popInfo.popID.begin();
+                    advance(it,ran_popdist[1]);
+                        T2 = (*it).first;
+                        T2type = ran_popdist[1];
+                        //T2freq = (*it).second/psize;
+
+                    cout << "T1 type is: " << T1type << ", T2 type is: " << T2type << endl;
+                    //T1.Write("onestate/T1.fst");
+                    //T2.Write("onestate/T2.fst");
+
+                    // The FSTs must be sorted along the dimensions they will be joined.
+                    // In fact, only one needs to be so sorted.
+                    // This could have instead been done for "model.fst" when it was created.
+                    ArcSort(&T1, StdOLabelCompare());
+                    ArcSort(&T2, StdILabelCompare());
+
+                    // Create the composed FST.
+                    Compose(T1, T2, &result);
+
+                    cout << "number of states in result:" << result.NumStates() << endl;
+                    //cout << "result start state is: " << result.Start() << endl;
+
+                    //result.Write("onestate/T3.fst");
+
+
+
+                //------prevent infinite loop------
+
+                if (docounter > dolimit)
+                {
+                    cout << "# of composition failures exceeded limit: " << dolimit << endl;
+                    break;
+                }
+                docounter++;
+
+            } while ((Verify(result) == 0) | (result.Start() == -1));
+        } else {
+            g = gsl_ran_discrete_preproc (popInfo.popID.size(), &popInfo.popdist[0]); // can pass &vector[0] to function expecting an array
             for (int i=0; i<3; i++) {ran_popdist[i]= gsl_ran_discrete (r, g);} // will this go from 0 to popID.size()??
 
-            it=popInfo.popID.begin();
-            advance(it,ran_popdist[0]);
-                T1 = (*it).first;
-                T1type = ran_popdist[0];
-                //T1freq = (*it).second/psize;
-
-            it=popInfo.popID.begin();
-            advance(it,ran_popdist[1]);
-                T2 = (*it).first;
-                T2type = ran_popdist[1];
-                //T2freq = (*it).second/psize;
-
-            cout << "T1 type is: " << T1type << ", T2 type is: " << T2type << endl;
-     //       T1.Write("onestate/T1.fst");
-     //       T2.Write("onestate/T2.fst");
-
-            // The FSTs must be sorted along the dimensions they will be joined.
-            // In fact, only one needs to be so sorted.
-            // This could have instead been done for "model.fst" when it was created.
-            ArcSort(&T1, StdOLabelCompare());
-            ArcSort(&T2, StdILabelCompare());
-
-            // Create the composed FST.
-            Compose(T1, T2, &result);
-
-            cout << "number of states in result:" << result.NumStates() << endl;
-            //cout << "result start state is: " << result.Start() << endl;
-
-     //       result.Write("onestate/T3.fst");
-
-            //------prevent infinite loop------
-
-            if (docounter > dolimit)
-            {
-                cout << "# of composition failures exceeded limit: " << dolimit << endl;
-                break;
-            }
-            docounter++;
-
-        } while ((Verify(result) == 0) | (result.Start() == -1));
+            result = randfst();
+            T1type = -1;
+            T2type = -1;
+            cout << "result is a random 2-state machine" << endl;
+        }
 
         int d = ran_popdist[2]; // index of machine type scheduled for removal
         cout << "type index scheduled for removal: " << d << endl;

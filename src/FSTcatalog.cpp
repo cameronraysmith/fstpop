@@ -73,7 +73,9 @@
             if (RandEquivalent(result,ProT,100,0))
                 {
                     (*it).second = (*it).second + 1;
-                    C.intxnNet[counter][T1type][T2type] = 1;
+
+                    if ((T1type != -1) && (T2type != -1))
+                    {C.intxnNet[counter][T1type][T2type] = 1;}
 
                     IDswitch = 0;
                     break;
@@ -93,8 +95,10 @@
                 C.intxnNet[i].addrow();
                 C.intxnNet[i].addcolumn();
             }
-            int lastind = C.intxnNet.size()-1;
-            C.intxnNet[lastind][T1type][T2type]= 1;
+
+            if ((T1type != -1) && (T2type != -1))
+            {int lastind = C.intxnNet.size()-1;
+            C.intxnNet[lastind][T1type][T2type]= 1;}
         }
 
         //-------update C.popID based upon the individual randomly selected for removal
@@ -127,7 +131,7 @@
 
     double FSTcatalog::ncomplexity()
     {
-        FSTcatalog &C = *this;
+        const FSTcatalog &C = *this;
         double CmuG = 0;
         vector<double> vjk;
         double Vi;
