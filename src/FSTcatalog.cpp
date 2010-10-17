@@ -156,7 +156,8 @@
                 CmuG += -(vjk[l]/Vi*log2(vjk[l]/Vi));
             }
         }
-        cout << "number of 1s in intxnNet: " << count << endl << endl;
+        cout << "number of 1s in intxnNet: " << count << endl;
+        cout << "interaction network complexity (CmuG): " << CmuG << endl;
         return CmuG;
     }
 
@@ -214,14 +215,7 @@
             gsl_matrix_complex *evec = gsl_matrix_complex_alloc (totst, totst);
 
             gsl_eigen_nonsymmv_workspace * w = gsl_eigen_nonsymmv_alloc (totst);
-/*
-            {int i,j;
-            for (i = 0; i < totst; i++)
-            for (j = 0; j < totst; j++)
-            printf ("T(%d,%d) = %g\n", i, j,
-                   gsl_matrix_get (T, i, j));
-            }
-*/
+
             gsl_eigen_nonsymmv (T, eval, evec, w);
 
 
@@ -242,24 +236,20 @@
 
                 if ((tempeval.dat[0])==1 && !tempeval.dat[1]) //selects for eigenvalue 1 + 0i // && !tempeval.dat[1]
                 {
-     //               printf("eval = %g + %gi\n",GSL_REAL(tempeval),GSL_IMAG(tempeval));
+                   // printf("eval = %g + %gi\n",GSL_REAL(tempeval),GSL_IMAG(tempeval));
                     gsl_vector_complex * compe1vec = gsl_vector_complex_alloc ((*evec).size1);
                     gsl_vector * e1vec = gsl_vector_alloc ((*evec).size1);
                     gsl_matrix_complex_get_col(compe1vec, evec, i);
                     gsl_vector_view e1vecview = gsl_vector_complex_real(compe1vec);
                     gsl_vector_memcpy(e1vec, &e1vecview.vector);
 
-    /*                for(int i=0; i<(*e1vec).size; i++)
-                    {
-                        printf("e1vec of %d = %f \n",i,gsl_vector_get(e1vec, i));
-                    }
-    */
+                   // for(int i=0; i<(*e1vec).size; i++) printf("e1vec of %d = %f \n",i,gsl_vector_get(e1vec, i));
+
                     double vecsum = gsl_blas_dasum(e1vec);
                     if(vecsum!=0)
                     {
                         gsl_vector_scale(e1vec, 1/vecsum);
                     }
-
 
                     for(unsigned int j=0; j<(*e1vec).size; j++)
                     {
@@ -292,6 +282,7 @@
             gsl_matrix_complex_free(evec);
             gsl_matrix_free(T);
         }
+        cout << "avg individual complexity (Cmu): " << avgCmu << endl << endl;
         return avgCmu;
     }
 
