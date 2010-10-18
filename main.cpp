@@ -61,17 +61,24 @@ headers at /usr/include/gsl
 #include "FSTcatalog.h"
 //#include "MMatrix.h"
 
-#define POP 50 // set population size
-#define GEN 100 // set number of generations
+#define POP 100 // set population size
+#define GEN 10000 // set number of generations
 
 using namespace fst;
 //using namespace TNT;
 using namespace std;
 
 
-//-------initialize global variables for gsl RNG-----------//
-const gsl_rng_type * T;
-gsl_rng * r;
+//-------initialize global variables -----------//
+    //---for gsl RNG
+    const gsl_rng_type * T;
+    gsl_rng * r;
+
+    //---create log file
+
+    // cout.rdbuf(logfile.rdbuf()); // sends to logfile
+    // cout.rdbuf(terminal); // sends to terminal
+
 
 
 //------generate n integers between 0 and range---//
@@ -158,9 +165,38 @@ StdVectorFst randfst()
     if ((Verify(Ra) && stateconnect && tofinal)) { return Ra;} else {randfst(); return Ra;}
 }
 
+// this function prints progress bar
+// pre: percentage complete
+// post: progress bar
+void progressbar(int percent)
+{
+    static stringstream bars;
+    static int x = 0, y = 100;
+    string slash[4];
+    slash[0] = "\\";
+    slash[1] = "-";
+    slash[2] = "/";
+    slash[3] = "|";
+    bars << "|";
+    cout << "\r"; // carriage return back to beginning of line
+    cout << "[" << bars.str() << slash[x];
+    for (int i=0; i<y; i++)
+        {
+            cout << " ";
+        }
+    cout << "]" << percent << " %"; // print the bars and percentage
+    y--; x++; // increment to make the slash appear to rotate
+    if(x == 4)
+    x = 0; // reset slash animation
+}
 
 int main()
 {
+    ofstream logfile;
+    logfile.open("fstpoplog.txt");
+    streambuf *terminal = cout.rdbuf();
+    cout.rdbuf(logfile.rdbuf()); //send output to logfile
+
 
 // uses MT19937 generator of Makoto Matsumoto and Takuji Nishimura RNG by defualt
 // Mersenne prime period of 2^19937 - 1 (about 10^6000) and is equi-distributed in 623 dimensions.
@@ -171,7 +207,7 @@ int main()
     r = gsl_rng_alloc (T);
     gsl_ran_discrete_t * g;
 //---------do not call gslrandgen or randfst before this point-----//
-    double phi_in = 0.1;
+    double phi_in = 0.5;
 
     int fstnum = 3;
     string fstnames[fstnum];
@@ -278,6 +314,21 @@ int main()
         CmuG.push_back(popInfo.ncomplexity());
         avgCmu.push_back(popInfo.scomplexity());
 
+
+        double gennum = GEN;
+        int genmod = int(gennum/100);
+
+        cout.rdbuf(terminal); // sends to terminal
+/*??*/  cout << cout.rdbuf(logfile.rdbuf()); // sends to logfile
+        if (x % genmod == 0)
+        {
+            int percentcomplete = floor(x/gennum*100);
+            cout.rdbuf(terminal); // sends to terminal
+            progressbar(percentcomplete);
+            cout.rdbuf(logfile.rdbuf()); // sends to logfile
+        }
+
+
     }
 
     ofstream ofile("network_complexity.txt");
@@ -325,5 +376,6 @@ int main()
 
     gsl_rng_free (r);
     gsl_ran_discrete_free (g);
+    logfile.close();
     return 0;
 }
