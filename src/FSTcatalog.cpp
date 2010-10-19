@@ -27,15 +27,15 @@
                 popID.push_back( make_pair(V[i],1) );
             }
         }
-        cout << "popID size: " << (int) popID.size() << "\n\n";
+        fstpoplog << "popID size: " << (int) popID.size() << "\n\n";
 
         //compute popdist
         for (it=popID.begin(); it!=popID.end() ; it++)
         {
             popdist.push_back((*it).second);
         }
-        ostream_iterator< double > output( cout, " " );
-        copy(popdist.begin(),popdist.end(), output); cout << "\n\n\n";
+        ostream_iterator< double > output( fstpoplog, " " );
+        copy(popdist.begin(),popdist.end(), output); fstpoplog << "\n\n\n";
 
         //initialize the group of interaction matrices
        // MMatrix ZeroArray(popID.size(),popID.size());
@@ -46,7 +46,7 @@
         MMatrix ZeroArray(popID.size(),popID.size());
         intxnNet.push_back(ZeroArray);
         }
-        cout << "number of matrices in intxnNet: " << (int) intxnNet.size() << endl;
+        fstpoplog << "number of matrices in intxnNet: " << (int) intxnNet.size() << endl;
     }
 
     FSTcatalog::~FSTcatalog()
@@ -126,7 +126,7 @@
             C.popdist.push_back((*it).second);
             popsum += (*it).second;
         }
-        cout << "population size is: " << popsum << endl;
+        fstpoplog << "population size is: " << popsum << endl;
     }
 
     double FSTcatalog::ncomplexity()
@@ -151,7 +151,7 @@
                         vjk.push_back(C.popdist[j]/C.N*C.popdist[k]/C.N);
                         Vi += C.popdist[j]/C.N*C.popdist[k]/C.N;
                         count++;
-                        cout << "true indices from intxNet: " << i << ",  " << j << ",  " << k << endl;
+                        fstpoplog << "true indices from intxNet: " << i << ",  " << j << ",  " << k << endl;
                     }
                 }
             }
@@ -160,8 +160,8 @@
                 CmuG += -(vjk[l]/Vi*log2(vjk[l]/Vi));
             }
         }
-        cout << "number of 1s in intxnNet: " << count << endl;
-        cout << "interaction network complexity (CmuG): " << CmuG << endl;
+        fstpoplog << "number of 1s in intxnNet: " << count << endl;
+        fstpoplog << "interaction network complexity (CmuG): " << CmuG << endl;
         return CmuG;
     }
 
@@ -176,12 +176,12 @@
             StdVectorFst F = (*it).first;
             ArcSort(&F, StdILabelCompare());
             int totst = F.NumStates();
-            //cout << "totst is: " << totst << endl;
+            //fstpoplog << "totst is: " << totst << endl;
             gsl_matrix * T = gsl_matrix_calloc(totst, totst);
 
             if (totst < 1)
             {
-                cout << "attempted to calculate complexity for machine with " << totst << " states" << endl;
+                fstpoplog << "attempted to calculate complexity for machine with " << totst << " states" << endl;
             }
 
             for (int i=0; i<totst ; i++)
@@ -229,14 +229,14 @@
 
             vector<double> pvec;
 
-            //   cout << "number of evals: " << eval.size << endl;
-            //cout << "number of evals: " << (*eval).size << endl;
+            //   fstpoplog << "number of evals: " << eval.size << endl;
+            //fstpoplog << "number of evals: " << (*eval).size << endl;
 
             for(unsigned int i=0; i<(*eval).size; i++)
             {
                 gsl_complex tempeval = gsl_vector_complex_get(eval, i);
-                //cout << "Re(tempeval) = " << tempeval.dat[0] << endl;
-                //cout << "Im(tempeval) = " << tempeval.dat[1] << endl;
+                //fstpoplog << "Re(tempeval) = " << tempeval.dat[0] << endl;
+                //fstpoplog << "Im(tempeval) = " << tempeval.dat[1] << endl;
 
                 if ((tempeval.dat[0])==1 && !tempeval.dat[1]) //selects for eigenvalue 1 + 0i // && !tempeval.dat[1]
                 {
@@ -258,7 +258,7 @@
                     for(unsigned int j=0; j<(*e1vec).size; j++)
                     {
                         pvec.push_back(fabs(gsl_vector_get(e1vec, j)));
-                        //cout << "prob: " << pvec[j] << endl;
+                        //fstpoplog << "prob: " << pvec[j] << endl;
                     }
 
                     gsl_vector_complex_free(compe1vec);
@@ -278,15 +278,15 @@
             }
 
             avgCmu += ((*it).second*Cmu)/(C.N);
-      //      cout << "individual Cmu = : " << Cmu << endl;
-      //      cout << "avg individual Cmu = : " << avgCmu << endl << endl;
+      //      fstpoplog << "individual Cmu = : " << Cmu << endl;
+      //      fstpoplog << "avg individual Cmu = : " << avgCmu << endl << endl;
 
 
             gsl_vector_complex_free(eval);
             gsl_matrix_complex_free(evec);
             gsl_matrix_free(T);
         }
-        cout << "avg individual complexity (Cmu): " << avgCmu << endl << endl;
+        fstpoplog << "avg individual complexity (Cmu): " << avgCmu << endl << endl;
         return avgCmu;
     }
 

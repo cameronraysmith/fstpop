@@ -70,12 +70,11 @@ using namespace std;
 
 
 //-------initialize global variables -----------//
-    //---for gsl RNG
-    const gsl_rng_type * T;
+    //---for GSL global RNG
     gsl_rng * r;
 
     //---create log file
-
+    //ofstream fstpoplog;
     // cout.rdbuf(logfile.rdbuf()); // sends to logfile
     // cout.rdbuf(terminal); // sends to terminal
 
@@ -135,21 +134,6 @@ StdVectorFst randfst()
     if (arcbit[rout[1]*4+2]) { Ra.AddArc(1, StdArc(2, 1, 0, sout[3])); }
     if (arcbit[rout[1]*4+3]) { Ra.AddArc(1, StdArc(2, 2, 0, sout[3])); }
 
-/*    // Adds arcs exiting state 0 and entering state 1
-    // Arc constructor args: ilabel, olabel, weight, dest state ID.
-    if (arcbit[rout[2]*4+0]) { Ra.AddArc(0, StdArc(1, 1, 0, 1)); } // 1st arg is src state ID
-    if (arcbit[rout[2]*4+1]) { Ra.AddArc(0, StdArc(1, 2, 0, 1)); }
-    if (arcbit[rout[2]*4+2]) { Ra.AddArc(0, StdArc(2, 1, 0, 1)); }
-    if (arcbit[rout[2]*4+3]) { Ra.AddArc(0, StdArc(2, 2, 0, 1)); }
-
-    // Adds arcs exiting state 1 and returning to state 1
-    // Arc constructor args: ilabel, olabel, weight, dest state ID.
-    if (arcbit[rout[3]*4+0]) { Ra.AddArc(1, StdArc(1, 1, 0, 0)); } // 1st arg is src state ID
-    if (arcbit[rout[3]*4+1]) { Ra.AddArc(1, StdArc(1, 2, 0, 0)); }
-    if (arcbit[rout[3]*4+2]) { Ra.AddArc(1, StdArc(2, 1, 0, 0)); }
-    if (arcbit[rout[3]*4+3]) { Ra.AddArc(1, StdArc(2, 2, 0, 0)); }
-*/
-
     bool stateconnect = 0;
     bool tofinal = 0;
     for (int i = 0; i<=1; i++)
@@ -170,51 +154,55 @@ StdVectorFst randfst()
 // post: progress bar
 void progressbar(int percent)
 {
-    static stringstream bars;
-    static int x = 0, y = 100;
+    //static stringstream bars;
+    static int z = 0, w = 0, q = 100;
     string slash[4];
     slash[0] = "\\";
     slash[1] = "-";
     slash[2] = "/";
     slash[3] = "|";
-    bars << "|";
+    //bars << "|";
     cout << "\r"; // carriage return back to beginning of line
-    cout << "[" << bars.str() << slash[x];
-    for (int i=0; i<y; i++)
-        {
-            cout << " ";
-        }
+    cout << "[" ;
+    for (int i=0; i<w; i++) {cout << "|";} //<< bars.str()
+    cout << slash[z];
+    for (int i=0; i<q; i++) {cout << " ";}
     cout << "]" << percent << " %"; // print the bars and percentage
-    y--; x++; // increment to make the slash appear to rotate
-    if(x == 4)
-    x = 0; // reset slash animation
+    cout.flush();
+    z++; w++; q--; // increment to make the slash appear to rotate
+    if(z == 4)
+    z = 0; // reset slash animation
 }
 
 int main()
 {
-    ofstream logfile;
-    logfile.open("fstpoplog.txt");
-    streambuf *terminal = cout.rdbuf();
-    cout.rdbuf(logfile.rdbuf()); //send output to logfile
-
 
 // uses MT19937 generator of Makoto Matsumoto and Takuji Nishimura RNG by defualt
 // Mersenne prime period of 2^19937 - 1 (about 10^6000) and is equi-distributed in 623 dimensions.
 // http://www.gnu.org/software/gsl/manual/html_node/Random-number-generator-algorithms.html
+    const gsl_rng_type * T;
     gsl_rng_env_setup();
-
+    gsl_rng_default_seed = 0;
     T = gsl_rng_default;
     r = gsl_rng_alloc (T);
     gsl_ran_discrete_t * g;
 //---------do not call gslrandgen or randfst before this point-----//
+
+    // set probability of generating a random FST (phi_in)
+    // and probability of generating an FST via composition (1-phi_in)
     double phi_in = 0.5;
 
-    int fstnum = 3;
-    string fstnames[fstnum];
+//---initiate log files
+    ofstream fstpoplog;
+    fstpoplog.open("fstpop.log");
 
-    fstnames[0]="T1";
-    fstnames[1]="T2";
-    fstnames[2]="T3";
+    stringstream foutname;
+    foutname << "complexity_" << phi_in << "_" << gsl_rng_default_seed << ".dat";
+    string s = foutname.str();
+    ofstream ofile;
+    ofile.open(s.c_str());
+
+
 //------------------Generate [population] of FSTs--------------------//
     vector<StdVectorFst> VT (POP); // Vector of Transducers (VT) is a container for the population
 
@@ -267,7 +255,7 @@ int main()
                         T2type = ran_popdist[1];
                         //T2freq = (*it).second/psize;
 
-                    cout << "T1 type is: " << T1type << ", T2 type is: " << T2type << endl;
+                    fstpoplog << "T1 type is: " << T1type << ", T2 type is: " << T2type << endl;
                     //T1.Write("onestate/T1.fst");
                     //T2.Write("onestate/T2.fst");
 
@@ -280,8 +268,8 @@ int main()
                     // Create the composed FST.
                     Compose(T1, T2, &result);
 
-                    cout << "number of states in result:" << result.NumStates() << endl;
-                    //cout << "result start state is: " << result.Start() << endl;
+                    fstpoplog << "number of states in result:" << result.NumStates() << endl;
+                    //fstpoplog << "result start state is: " << result.Start() << endl;
 
                     //result.Write("onestate/T3.fst");
 
@@ -291,7 +279,7 @@ int main()
 
                 if (docounter > dolimit)
                 {
-                    cout << "# of composition failures exceeded limit: " << dolimit << endl;
+                    fstpoplog << "# of composition failures exceeded limit: " << dolimit << endl;
                     break;
                 }
                 docounter++;
@@ -304,48 +292,46 @@ int main()
             result = randfst();
             T1type = -1;
             T2type = -1;
-            cout << "result is a random 2-state machine" << endl;
+            fstpoplog << "result is a random 2-state machine" << endl;
         }
 
         int d = ran_popdist[2]; // index of machine type scheduled for removal
-        cout << "type index scheduled for removal: " << d << endl;
+        fstpoplog << "type index scheduled for removal: " << d << endl;
         popInfo.update(result, d, T1type, T2type);
 
-        CmuG.push_back(popInfo.ncomplexity());
-        avgCmu.push_back(popInfo.scomplexity());
+        //CmuG.push_back(popInfo.ncomplexity());
+        //avgCmu.push_back(popInfo.scomplexity());
+        ofile << popInfo.ncomplexity() << "\t" << popInfo.scomplexity() << "\n";
 
 
         double gennum = GEN;
         int genmod = int(gennum/100);
 
-        cout.rdbuf(terminal); // sends to terminal
-/*??*/  cout << cout.rdbuf(logfile.rdbuf()); // sends to logfile
         if (x % genmod == 0)
         {
-            int percentcomplete = floor(x/gennum*100);
-            cout.rdbuf(terminal); // sends to terminal
+            int percentcomplete = int(x/gennum*100);
             progressbar(percentcomplete);
-            cout.rdbuf(logfile.rdbuf()); // sends to logfile
         }
-
 
     }
 
-    ofstream ofile("network_complexity.txt");
+  /*  stringstream foutname;
+    foutname << "ncomplexity_" << phi_in << "_" << gsl_rng_default_seed << ".dat";
+    ofstream ofile(foutname.str());
     ostream_iterator<double> outit (ofile, "\n");
     copy(CmuG.begin(), CmuG.end(), outit);
 
     ofstream ofile2("individual_complexity.txt");
     ostream_iterator<double> outit2 (ofile2, "\n");
     copy(avgCmu.begin(), avgCmu.end(), outit2);
+*/
 
 
-
-    cout << "number of composition failures: " << (docounter-1) << endl;
-//    cout << "fst eliminated is #: " << d << endl;
-    cout << "T1 start state is " << T1.Start() << endl;
-    cout << "T2 start state is " << T2.Start() << endl;
-    cout << "result start state is " << result.Start() << endl;
+//    fstpoplog << "number of composition failures: " << (docounter-1) << endl;
+//    fstpoplog << "fst eliminated is #: " << d << endl;
+//    fstpoplog << "T1 start state is " << T1.Start() << endl;
+//    fstpoplog << "T2 start state is " << T2.Start() << endl;
+//    fstpoplog << "result start state is " << result.Start() << endl;
 
 //---------compute and store interaction network complexity-------//
 
@@ -371,11 +357,12 @@ int main()
 //
 //        }
 //
-//    } else { cout << "No command interpreter available \n"; };
+//    } else { fstpoplog << "No command interpreter available \n"; };
 
 
     gsl_rng_free (r);
     gsl_ran_discrete_free (g);
-    logfile.close();
+    fstpoplog.close();
+    ofile.close();
     return 0;
 }

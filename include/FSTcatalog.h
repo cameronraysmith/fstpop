@@ -23,6 +23,7 @@
 
     class FSTcatalog
     {
+        ofstream fstpoplog;
         public:
             FSTlist popID;
             vector<double> popdist; // container for population type distribution...a
