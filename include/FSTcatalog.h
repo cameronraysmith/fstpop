@@ -6,6 +6,7 @@
 
     //------------OpenFST-------------//
     #include <fst/fstlib.h>
+    #include <fst/extensions/far/farlib.h>
 
     //--------------GSL----------------//
     #include <gsl/gsl_math.h>
@@ -20,17 +21,17 @@
     using namespace fst;
     typedef list< pair<StdVectorFst, int> > FSTlist;
     typedef vector< MMatrix > MatrixGroup;
+    extern ofstream fstpoplog;
 
     class FSTcatalog
     {
-        ofstream fstpoplog;
         public:
             FSTlist popID;
             vector<double> popdist; // container for population type distribution...a
             MatrixGroup intxnNet;
             int N; // population size
 
-            FSTcatalog(vector<StdVectorFst> V);
+            FSTcatalog(vector<StdVectorFst> V); // constructor
             virtual ~FSTcatalog();
 
             void update(StdVectorFst result, int d, int T1type, int T2type);

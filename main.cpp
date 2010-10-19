@@ -62,7 +62,7 @@ headers at /usr/include/gsl
 //#include "MMatrix.h"
 
 #define POP 100 // set population size
-#define GEN 10000 // set number of generations
+#define GEN 1000 // set number of generations
 
 using namespace fst;
 //using namespace TNT;
@@ -72,6 +72,9 @@ using namespace std;
 //-------initialize global variables -----------//
     //---for GSL global RNG
     gsl_rng * r;
+
+    //---stream for logfile
+    ofstream fstpoplog;
 
 //------generate n integers between 0 and range---//
 vector<int> gslrandgen(int n, int range)
@@ -170,6 +173,10 @@ void progressbar(int percent)
 int main()
 {
 
+//FarWriter<StdVectorFst> FAR;
+//FAR.Create("fstarchive.arch");
+//FAR.Add()
+
 // uses MT19937 generator of Makoto Matsumoto and Takuji Nishimura RNG by defualt
 // Mersenne prime period of 2^19937 - 1 (about 10^6000) and is equi-distributed in 623 dimensions.
 // http://www.gnu.org/software/gsl/manual/html_node/Random-number-generator-algorithms.html
@@ -185,8 +192,7 @@ int main()
     // and probability of generating an FST via composition (1-phi_in)
     double phi_in = 0.5;
 
-//---initiate log files
-    ofstream fstpoplog;
+//---open log files
     fstpoplog.open("fstpop.log");
 
     stringstream foutname;
@@ -294,17 +300,17 @@ int main()
 
         //CmuG.push_back(popInfo.ncomplexity());
         //avgCmu.push_back(popInfo.scomplexity());
-        ofile << popInfo.ncomplexity() << "\t" << popInfo.scomplexity() << "\n";
+        ofile << popInfo.ncomplexity() << "\t\t" << popInfo.scomplexity() << "\n";
 
 
-        double gennum = GEN;
-        int genmod = int(gennum/100);
-
-        if (x % genmod == 0)
-        {
-            int percentcomplete = int(x/gennum*100);
-            progressbar(percentcomplete);
-        }
+//        double gennum = GEN;
+//        int genmod = int(gennum/100);
+//
+//        if (x % genmod == 0)
+//        {
+//            int percentcomplete = int(x/gennum*100);
+//            progressbar(percentcomplete);
+//        }
 
     }
 

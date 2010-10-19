@@ -38,9 +38,7 @@
         copy(popdist.begin(),popdist.end(), output); fstpoplog << "\n\n\n";
 
         //initialize the group of interaction matrices
-       // MMatrix ZeroArray(popID.size(),popID.size());
-
-
+        // MMatrix ZeroArray(popID.size(),popID.size());
         for (unsigned int i=0; i<popID.size(); i++)
         {
         MMatrix ZeroArray(popID.size(),popID.size());

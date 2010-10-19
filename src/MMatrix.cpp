@@ -1,6 +1,6 @@
     #include "MMatrix.h"
 
-    MMatrix::MMatrix(int x, int y) : Array2D<double> (x,y) // use constructor from Array2D
+    MMatrix::MMatrix(int x, int y) : Array2D<bool> (x,y) // use constructor from Array2D
     {
         MMatrix &M = *this;
         for (int i=0; i<x; i++)
@@ -127,7 +127,7 @@
 
         M = out;
     }
-
+/*
     void MMatrix::rownorm()
     {
         MMatrix &M = *this;
@@ -154,3 +154,4 @@
 
         M = out;
     }
+*/
