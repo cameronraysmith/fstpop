@@ -73,13 +73,6 @@ using namespace std;
     //---for GSL global RNG
     gsl_rng * r;
 
-    //---create log file
-    //ofstream fstpoplog;
-    // cout.rdbuf(logfile.rdbuf()); // sends to logfile
-    // cout.rdbuf(terminal); // sends to terminal
-
-
-
 //------generate n integers between 0 and range---//
 vector<int> gslrandgen(int n, int range)
 
@@ -314,51 +307,6 @@ int main()
         }
 
     }
-
-  /*  stringstream foutname;
-    foutname << "ncomplexity_" << phi_in << "_" << gsl_rng_default_seed << ".dat";
-    ofstream ofile(foutname.str());
-    ostream_iterator<double> outit (ofile, "\n");
-    copy(CmuG.begin(), CmuG.end(), outit);
-
-    ofstream ofile2("individual_complexity.txt");
-    ostream_iterator<double> outit2 (ofile2, "\n");
-    copy(avgCmu.begin(), avgCmu.end(), outit2);
-*/
-
-
-//    fstpoplog << "number of composition failures: " << (docounter-1) << endl;
-//    fstpoplog << "fst eliminated is #: " << d << endl;
-//    fstpoplog << "T1 start state is " << T1.Start() << endl;
-//    fstpoplog << "T2 start state is " << T2.Start() << endl;
-//    fstpoplog << "result start state is " << result.Start() << endl;
-
-//---------compute and store interaction network complexity-------//
-
-
-
-//---------print interaction network---------------//
-
-
-//    int cmdtst = system(NULL);
-//    if ( cmdtst != 0 )
-//    {
-//        for ( int i=0; i<fstnum; i++ )
-//        {
-//
-//            string sh1="fstdraw onestate/.fst onestate/.dot";
-//            string sh2="dot -Tps onestate/.dot > onestate/.ps";
-//            string sh3="evince onestate/.ps &";
-//            string fstname = fstnames[i];
-//            sh1.insert(17,fstname); sh1.insert(33,fstname);
-//            sh2.insert(18,fstname); sh2.insert(36,fstname);
-//            sh3.insert(16,fstname);
-//            system(sh1.c_str()); system(sh2.c_str()); system(sh3.c_str());
-//
-//        }
-//
-//    } else { fstpoplog << "No command interpreter available \n"; };
-
 
     gsl_rng_free (r);
     gsl_ran_discrete_free (g);
