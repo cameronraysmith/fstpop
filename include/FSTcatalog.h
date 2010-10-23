@@ -37,6 +37,7 @@
             void update(StdVectorFst result, int d, int T1type, int T2type);
             double ncomplexity();
             double scomplexity();
+            void printpop(string outpdf);
         protected:
         private:
     };

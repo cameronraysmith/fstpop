@@ -165,8 +165,8 @@
 
     double FSTcatalog::scomplexity()
     {
-        FSTcatalog &C = *this;
-        FSTlist::iterator it;
+        const FSTcatalog &C = *this;
+        FSTlist::const_iterator it;
         double avgCmu = 0;
 
         for (it=C.popID.begin(); it!=C.popID.end() ; it++)
@@ -286,6 +286,40 @@
         }
         fstpoplog << "avg individual complexity (Cmu): " << avgCmu << endl << endl;
         return avgCmu;
+    }
+
+    void FSTcatalog::printpop(string outpdf)
+    {
+        const FSTcatalog &C = *this;
+        FSTlist::const_iterator it;
+        int counter = 0;
+        for (it=C.popID.begin(); it!=C.popID.end() ; it++)
+        {
+            StdVectorFst F = (*it).first;
+
+            stringstream fstname;
+            fstname << "T_" << counter;
+            string s = fstname.str();
+            string f = "onestate/" + s + ".fst";
+            F.Write(f.c_str());
+
+            int cmdtst = system(NULL);
+
+            if ( cmdtst != 0 )
+            {
+                    string sh1="fstdraw onestate/" + s + ".fst onestate/" + s + ".dot";
+                    string sh2="dot -Tps onestate/" + s + ".dot > onestate/" + s + ".ps";
+
+                    system(sh1.c_str()); system(sh2.c_str());
+
+            } else { cout << "No command interpreter available \n"; };
+
+            counter++;
+        }
+        string sh3 = "gs -q -sPAPERSIZE=letter -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=onestate/" + outpdf + " onestate/*.ps";
+        string sh4 = "rm onestate/*.ps onestate/*.dot onestate/*.fst";
+        system(sh3.c_str()); system(sh4.c_str());
+
     }
 
 /**/

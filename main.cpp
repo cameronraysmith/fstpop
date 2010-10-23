@@ -112,7 +112,9 @@ StdVectorFst randfst()
 
     //-------set start and final states randomly to 0 or 1 ------//
     vector<int> rfin = gslrandgen(2, 1);
-    if (rfin[0]) {Ra.SetStart(0);}   else {Ra.SetStart(1);}
+
+
+    if (rfin[0]) {Ra.SetStart(0);}   else {Ra.SetStart(0);}
     if (rfin[1]) {Ra.SetFinal(1,0);} else {Ra.SetFinal(0,0);} // SetFinal (StateID, weight)
 
     // Adds arcs exiting state 0
@@ -129,7 +131,7 @@ StdVectorFst randfst()
     if (arcbit[rout[1]*4+1]) { Ra.AddArc(1, StdArc(1, 2, 0, sout[2])); }
     if (arcbit[rout[1]*4+2]) { Ra.AddArc(1, StdArc(2, 1, 0, sout[3])); }
     if (arcbit[rout[1]*4+3]) { Ra.AddArc(1, StdArc(2, 2, 0, sout[3])); }
-
+/*
     bool stateconnect = 0;
     bool tofinal = 0;
     for (int i = 0; i<=1; i++)
@@ -142,7 +144,8 @@ StdVectorFst randfst()
               if (i!=ds){stateconnect=1;}
             }
     }
-    if ((Verify(Ra) && stateconnect && tofinal)) { return Ra;} else {randfst(); return Ra;}
+*/
+    if ((Verify(Ra))) { return Ra;} else {randfst(); return Ra;}
 }
 
 // this function prints progress bar
@@ -190,7 +193,7 @@ int main()
 
     // set probability of generating a random FST (phi_in)
     // and probability of generating an FST via composition (1-phi_in)
-    double phi_in = 0.5;
+    double phi_in = 0.1;
 
 //---open log files
     fstpoplog.open("fstpop.log");
@@ -215,6 +218,7 @@ int main()
     //determine the number of unique individuals in the population...in constructor of FSTcatalog
 
     FSTcatalog popInfo(VT);
+    popInfo.printpop("FSTcatalog.pdf");
 
 //-------------------Select two FSTs at random for composition------------//
   //  StdVectorFst compres; // Container for composition result
@@ -240,7 +244,9 @@ int main()
                 // 2: second machine in compositon
                 // 3: machine scheduled for replacement
                 g = gsl_ran_discrete_preproc (popInfo.popID.size(), &popInfo.popdist[0]); // can pass &vector[0] to function expecting an array
+           //     do{
                 for (int i=0; i<3; i++) {ran_popdist[i]= gsl_ran_discrete (r, g);} // will this go from 0 to popID.size()??
+           //     } while (ran_popdist[0]==ran_popdist[1]);
 
                     it=popInfo.popID.begin();
                     advance(it,ran_popdist[0]);
@@ -296,23 +302,30 @@ int main()
 
         int d = ran_popdist[2]; // index of machine type scheduled for removal
         fstpoplog << "type index scheduled for removal: " << d << endl;
+        fstpoplog.flush();
         popInfo.update(result, d, T1type, T2type);
 
         //CmuG.push_back(popInfo.ncomplexity());
         //avgCmu.push_back(popInfo.scomplexity());
-        ofile << popInfo.ncomplexity() << "\t\t" << popInfo.scomplexity() << "\n";
+        fstpoplog.flush();
+        double netcomp = popInfo.ncomplexity();
+        fstpoplog.flush();
+        double statcomp = popInfo.scomplexity();
+        ofile << netcomp << "\t\t" << statcomp << "\n";
+        ofile.flush();
 
 
-//        double gennum = GEN;
-//        int genmod = int(gennum/100);
-//
-//        if (x % genmod == 0)
-//        {
-//            int percentcomplete = int(x/gennum*100);
-//            progressbar(percentcomplete);
-//        }
+        double gennum = GEN;
+        int genmod = int(gennum/100);
+
+        if (x % genmod == 0)
+        {
+            int percentcomplete = int(x/gennum*100);
+            progressbar(percentcomplete);
+        }
 
     }
+    popInfo.printpop("FSTcatalog_final.pdf");
 
     gsl_rng_free (r);
     gsl_ran_discrete_free (g);
